@@ -797,7 +797,8 @@ function PropertyDetailPage({ id, navigate }: { id: string; navigate: Nav }) {
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={agent.avatar} alt={agent.name}
                       className="h-11 w-11 rounded-full object-cover ring-1"
-                      style={{ ringColor: G.gold }} />
+                      style={{ '--tw-ring-color': G.gold } as React.CSSProperties}
+                    />
                     <div>
                       <p className="text-sm font-medium text-white">{agent.name}</p>
                       <p className="text-xs" style={{ color: "rgba(255,255,255,0.45)" }}>
@@ -976,7 +977,8 @@ function AboutPage({ navigate }: { navigate: Nav }) {
               </p>
               <h2 className="font-display text-4xl font-light leading-[1.1] text-white sm:text-5xl">
                 Your IDX feed,
-                <br />finally beautiful.
+                <br />
+                finally beautiful.
               </h2>
               <p className="mt-6 max-w-md text-base leading-relaxed"
                 style={{ color: "rgba(255,255,255,0.42)" }}>

@@ -77,7 +77,7 @@ export default function Hero() {
           </p>
 
           <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
-            <Button href="/contact" variant="primary">Start a project</Button>
+            <Button href="/start" variant="primary">Start a project</Button>
             <Button href="/projects" variant="secondary">See the work</Button>
           </div>
         </motion.div>

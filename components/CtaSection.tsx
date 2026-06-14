@@ -178,7 +178,7 @@ export default function CtaSection() {
           className="mt-12 flex flex-wrap items-center justify-center gap-4"
           style={{ transform: "translateZ(38px)" }}
         >
-          <Button href="/contact" variant="primary" size="md">Start a project</Button>
+          <Button href="/start" variant="primary" size="md">Start a project</Button>
           <Button href="/projects" variant="secondary" size="md" dark>See the work</Button>
         </motion.div>
 
