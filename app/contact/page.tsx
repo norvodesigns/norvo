@@ -1,7 +1,6 @@
 import Hero from "@/components/Hero";
 import Projects from "@/components/Projects";
-import CapabilitySpheresClient from "@/components/CapabilitySpheresClient";
-import ServicesHome from "@/components/ServicesHome";
+import Services from "@/components/ServicesPageContent";
 import DepthDemo from "@/components/DepthDemo";
 import Process from "@/components/Process";
 import CtaSection from "@/components/CtaSection";
@@ -11,8 +10,7 @@ export default function Home() {
     <main>
       <Hero />
       <Projects />
-      <CapabilitySpheresClient />
-      <ServicesHome />
+      <Services />
       <DepthDemo />
       <Process />
       <CtaSection />

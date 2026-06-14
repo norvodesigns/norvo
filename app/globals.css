@@ -2,25 +2,38 @@
 
 :root {
   --background: #ffffff;
-  --foreground: #171717;
+  --foreground: #0a0a0a;
+
+  --norvo-teal: #0D7A7A;
+  --norvo-gold: #D9A441;
+  --norvo-gradient: linear-gradient(120deg, var(--norvo-teal), var(--norvo-gold));
 }
 
-@theme inline {
+@theme {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-norvo-teal: var(--norvo-teal);
+  --color-norvo-gold: var(--norvo-gold);
+  --font-sans: var(--font-geist), system-ui, sans-serif;
+  --font-display: var(--font-sora), system-ui, sans-serif;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist), system-ui, sans-serif;
+  overflow-x: hidden;
+}
+
+.text-gradient {
+  background: var(--norvo-gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }
