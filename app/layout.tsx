@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Sora } from "next/font/google";
 import "./globals.css";
 import CursorTrail from "@/components/CursorTrail";
@@ -18,7 +18,7 @@ export const metadata: Metadata = {
     siteName: "Norvo",
     images: [
       {
-        url: "/norvo word.png",
+        url: "/norvo word.jpg",
         width: 1200,
         height: 630,
         alt: "Norvo",
@@ -26,6 +26,14 @@ export const metadata: Metadata = {
     ],
     type: "website",
   },
+};
+
+// viewport-fit=cover lets the page extend edge-to-edge into the device safe
+// areas (e.g. behind the iPhone dynamic island) so the fixed nav can sit at the
+// true top of the screen. Merged on top of Next's defaults (width=device-width,
+// initial-scale=1), which are preserved.
+export const viewport: Viewport = {
+  viewportFit: "cover",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

@@ -42,6 +42,7 @@ export default function Nav() {
         className="fixed inset-x-0 top-0 z-50"
       >
         <div
+          style={{ paddingTop: "env(safe-area-inset-top)" }}
           className={`transition-colors duration-500 ${
             scrolled && !open ? "border-b border-black/5 bg-white/70 backdrop-blur-xl" : ""
           }`}
