@@ -15,8 +15,8 @@ const LINKS = [
 
 const item = {
   hidden: { opacity: 0, y: 60, rotate: 7 },
-  show: { opacity: 1, y: 0, rotate: 0, transition: { type: "spring", stiffness: 130, damping: 15 } },
-  exit: { opacity: 0, y: 40, rotate: -5, transition: { duration: 0.4, ease: [0.65, 0, 0.35, 1] } },
+  show: { opacity: 1, y: 0, rotate: 0, transition: { type: "spring" as const, stiffness: 130, damping: 15 } },
+  exit: { opacity: 0, y: 40, rotate: -5, transition: { duration: 0.4, ease: [0.65, 0, 0.35, 1] as const } },
 };
 
 export default function Nav() {
@@ -66,7 +66,7 @@ export default function Nav() {
                 <span className="absolute -bottom-1.5 left-0 h-px w-full origin-left scale-x-0 bg-[var(--norvo-gradient)] transition-transform duration-300 group-hover:scale-x-100" />
               </Link>
             ))}
-            <Button href="/start" variant="primary" size="sm">Start a project</Button>
+            <Button href="/contact" variant="primary" size="sm">Start a project</Button>
           </nav>
 
           <button
@@ -127,7 +127,7 @@ export default function Nav() {
                 </motion.div>
               ))}
               <motion.div className="mt-8" variants={item} style={{ transformOrigin: "0% 100%" }}>
-                <Button href="/start" variant="primary" withArrow>Start a project</Button>
+                <Button href="/contact" variant="primary" withArrow>Start a project</Button>
               </motion.div>
             </motion.nav>
 
