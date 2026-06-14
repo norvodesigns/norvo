@@ -24,14 +24,9 @@ export default function Button({
   className = "",
 }: Props) {
   const ref = useRef<HTMLAnchorElement>(null);
-  const tRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastTouchRef = useRef(0);
   const [hover, setHover] = useState(false);
   const router = useRouter();
-
-  const clearT = () => {
-    if (tRef.current) { clearTimeout(tRef.current); tRef.current = null; }
-  };
 
   const setOrigin = (clientX: number, clientY: number) => {
     const el = ref.current;
@@ -82,20 +77,17 @@ export default function Button({
       onPointerEnter={(e) => {
         if (e.pointerType === "touch") return;
         if (Date.now() - lastTouchRef.current < 600) return;
-        clearT(); setOrigin(e.clientX, e.clientY); setHover(true);
+        setOrigin(e.clientX, e.clientY); setHover(true);
       }}
-      onPointerLeave={() => { clearT(); setHover(false); }}
-      onPointerCancel={() => { clearT(); setHover(false); }}
+      // A touch tap "sticks" like a held desktop hover: keep the fill engaged
+      // after the tap. Only a real mouse leaving — or a cancelled gesture such as
+      // a scroll — turns it back off.
+      onPointerLeave={(e) => { if (e.pointerType !== "touch") setHover(false); }}
+      onPointerCancel={() => setHover(false)}
       onPointerDown={(e) => {
         if (e.pointerType === "touch") {
           lastTouchRef.current = Date.now();
-          clearT(); setOrigin(e.clientX, e.clientY); setHover(true);
-        }
-      }}
-      onPointerUp={(e) => {
-        if (e.pointerType === "touch") {
-          clearT();
-          tRef.current = setTimeout(() => setHover(false), 240);
+          setOrigin(e.clientX, e.clientY); setHover(true);
         }
       }}
       whileHover={{ y: -2 }}
