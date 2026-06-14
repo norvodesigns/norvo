@@ -11,6 +11,21 @@ const sora = Sora({ variable: "--font-sora", subsets: ["latin"], weight: ["100",
 export const metadata: Metadata = {
   title: "Norvo — 3D-feeling web spaces",
   description: "We create beautiful 3D-feeling web spaces for small businesses and organizations.",
+  openGraph: {
+    title: "Norvo — 3D-feeling web spaces",
+    description: "We create beautiful 3D-feeling web spaces for small businesses and organizations.",
+    url: "https://norvo.vercel.app",
+    siteName: "Norvo",
+    images: [
+      {
+        url: "/norvo word.png",
+        width: 1200,
+        height: 630,
+        alt: "Norvo",
+      },
+    ],
+    type: "website",
+  },
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
