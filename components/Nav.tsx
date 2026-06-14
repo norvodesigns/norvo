@@ -67,7 +67,7 @@ export default function Nav() {
                 <span className="absolute -bottom-1.5 left-0 h-px w-full origin-left scale-x-0 bg-[var(--norvo-gradient)] transition-transform duration-300 group-hover:scale-x-100" />
               </Link>
             ))}
-            <Button href="/contact" variant="primary" size="sm">Start a project</Button>
+            <Button href="/start" variant="primary" size="sm">Start a project</Button>
           </nav>
 
           <button
@@ -128,7 +128,7 @@ export default function Nav() {
                 </motion.div>
               ))}
               <motion.div className="mt-8" variants={item} style={{ transformOrigin: "0% 100%" }}>
-                <Button href="/contact" variant="primary" withArrow>Start a project</Button>
+                <Button href="/start" variant="primary" withArrow>Start a project</Button>
               </motion.div>
             </motion.nav>
 
