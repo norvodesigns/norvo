@@ -1,8 +1,7 @@
 "use client";
 
-import { useRef } from "react";
-import { motion, useMotionValue, useSpring } from "motion/react";
 import ScrollReveal3D from "./ScrollReveal3D";
+import Tilt3D from "./Tilt3D";
 
 const STEPS = [
   {
@@ -22,37 +21,6 @@ const STEPS = [
   },
 ];
 
-function TiltCard({ children }: { children: React.ReactNode }) {
-  const ref = useRef<HTMLDivElement>(null);
-  const rx = useMotionValue(0);
-  const ry = useMotionValue(0);
-  const srx = useSpring(rx, { stiffness: 200, damping: 22 });
-  const sry = useSpring(ry, { stiffness: 200, damping: 22 });
-
-  const onMove = (e: React.MouseEvent) => {
-    const r = ref.current?.getBoundingClientRect();
-    if (!r) return;
-    const x = (e.clientX - r.left) / r.width - 0.5;
-    const y = (e.clientY - r.top) / r.height - 0.5;
-    rx.set(-y * 7);
-    ry.set(x * 7);
-  };
-  const onLeave = () => { rx.set(0); ry.set(0); };
-
-  return (
-    <div
-      ref={ref}
-      onMouseMove={onMove}
-      onMouseLeave={onLeave}
-      style={{ perspective: 700 }}
-    >
-      <motion.div style={{ rotateX: srx, rotateY: sry }}>
-        {children}
-      </motion.div>
-    </div>
-  );
-}
-
 export default function Process() {
   return (
     <section className="px-6 py-28 sm:py-40">
@@ -68,7 +36,8 @@ export default function Process() {
 
         <div className="grid gap-px bg-black/[0.06] rounded-3xl overflow-hidden sm:grid-cols-3">
           {STEPS.map((step) => (
-            <TiltCard key={step.num}>
+            // seamless grid tiles → no scale/lift so neighbours don't overlap
+            <Tilt3D key={step.num} className="h-full" max={9} scale={1} lift={0} perspective={700}>
               <div className="bg-white p-10 md:p-12 h-full">
                 <ScrollReveal3D>
                   <span
@@ -85,7 +54,7 @@ export default function Process() {
                   </p>
                 </ScrollReveal3D>
               </div>
-            </TiltCard>
+            </Tilt3D>
           ))}
         </div>
       </div>
