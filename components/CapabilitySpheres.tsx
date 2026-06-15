@@ -872,7 +872,11 @@ export default function CapabilitySpheres(){
   const tilt = useDeviceTilt();
   const lookRef = useRef({x:0,y:0});
   useEffect(()=>{
+    // Desktop only — on touch the scrolling finger fires pointermove and would
+    // yank the flowers around mid-scroll. Touch uses the gyro instead (below).
+    if(window.matchMedia("(pointer:coarse)").matches)return;
     const onMove=(e:PointerEvent)=>{
+      if(e.pointerType==="touch")return;
       lookRef.current.x=(e.clientX/window.innerWidth)*2-1;
       lookRef.current.y=(e.clientY/window.innerHeight)*2-1;
     };
@@ -1101,7 +1105,7 @@ export default function CapabilitySpheres(){
 
           {/* Index pill */}
           <div ref={pillRef} className="pointer-events-none absolute left-0 right-0 flex justify-center"
-               style={{top:"clamp(16px,2.5vh,32px)",opacity:0,zIndex:5}}>
+               style={{top: isMobile ? "calc(env(safe-area-inset-top, 0px) + 4.75rem)" : "clamp(16px,2.5vh,32px)", opacity:0, zIndex:5}}>
             {c&&(
               <div style={{
                 display:"flex",alignItems:"center",gap:"10px",

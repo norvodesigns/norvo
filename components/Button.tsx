@@ -14,6 +14,8 @@ type Props = {
   dark?: boolean;
   className?: string;
   onClick?: () => void;
+  /** disable the 3D tilt (e.g. inside an already-tilting container) */
+  noTilt?: boolean;
 };
 
 export default function Button({
@@ -25,6 +27,7 @@ export default function Button({
   dark = false,
   className = "",
   onClick,
+  noTilt = false,
 }: Props) {
   const ref = useRef<HTMLAnchorElement>(null);
   const lastTouchRef = useRef(0);
@@ -45,7 +48,7 @@ export default function Button({
   // Only an on-screen button subscribes to the gyro — keeps offscreen buttons
   // (e.g. the CTA at the bottom of the page) from running springs as you tilt.
   useEffect(() => {
-    if (reduce || !tilt?.enabled || !inView) return;
+    if (noTilt || reduce || !tilt?.enabled || !inView) return;
     const apply = () => {
       px.set(tilt.tiltX.get() * 0.5);
       py.set(tilt.tiltY.get() * 0.5);
@@ -54,7 +57,7 @@ export default function Button({
     const ux = tilt.tiltX.on("change", apply);
     const uy = tilt.tiltY.on("change", apply);
     return () => { ux(); uy(); px.set(0); py.set(0); };
-  }, [tilt, reduce, inView, px, py]);
+  }, [tilt, reduce, inView, noTilt, px, py]);
 
   const setOrigin = (clientX: number, clientY: number) => {
     const el = ref.current;
@@ -65,7 +68,7 @@ export default function Button({
   };
 
   const setTilt = (clientX: number, clientY: number) => {
-    if (reduce) return;
+    if (noTilt || reduce) return;
     const r = ref.current?.getBoundingClientRect();
     if (!r) return;
     px.set((clientX - r.left) / r.width - 0.5);

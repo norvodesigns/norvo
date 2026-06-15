@@ -49,8 +49,8 @@ export default function Nav() {
   const reduceMotion = useReducedMotion();
   const gx = useMotionValue(0);
   const gy = useMotionValue(0);
-  const menuRotX = useSpring(useTransform(gy, [-1, 1], [12, -12]), { stiffness: 90, damping: 13 });
-  const menuRotY = useSpring(useTransform(gx, [-1, 1], [-12, 12]), { stiffness: 90, damping: 13 });
+  const menuRotX = useSpring(useTransform(gy, [-1, 1], [8, -8]), { stiffness: 90, damping: 13 });
+  const menuRotY = useSpring(useTransform(gx, [-1, 1], [-8, 8]), { stiffness: 90, damping: 13 });
   useEffect(() => {
     if (reduceMotion || !open || !tilt?.enabled) return;
     const apply = () => { gx.set(tilt.tiltX.get()); gy.set(tilt.tiltY.get()); };
@@ -157,13 +157,8 @@ export default function Nav() {
                 exit: { transition: { staggerChildren: 0.06, staggerDirection: -1 } },
               }}
             >
-              {LINKS.map((l, i) => (
-                <motion.div
-                  key={l.href}
-                  variants={item}
-                  // staggered depth → items parallax apart as the panel tilts
-                  style={{ z: (LINKS.length - i) * 18, transformStyle: "preserve-3d" }}
-                >
+              {LINKS.map((l) => (
+                <motion.div key={l.href} variants={item}>
                   <Link
                     href={l.href}
                     onClick={() => setOpen(false)}
@@ -173,8 +168,10 @@ export default function Nav() {
                   </Link>
                 </motion.div>
               ))}
-              <motion.div className="mt-8" variants={item} style={{ z: 96, transformStyle: "preserve-3d" }}>
-                <Button href="/start" variant="primary" withArrow onClick={() => setOpen(false)}>Start a project</Button>
+              {/* noTilt: the panel already tilts as one plane — its own tilt would
+                  double up and make it move out of sync with the links */}
+              <motion.div className="mt-8" variants={item}>
+                <Button href="/start" variant="primary" withArrow noTilt onClick={() => setOpen(false)}>Start a project</Button>
               </motion.div>
             </motion.nav>
 
