@@ -1,11 +1,12 @@
 "use client";
 
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import dynamic from "next/dynamic";
 import { motion, useMotionValue, useSpring, useTransform, useScroll } from "motion/react";
 import WordmarkHero from "./WordmarkHero";
 import Button from "./Button";
 import { Reveal3D } from "./TextAnimations";
+import { useDeviceTilt } from "./DeviceTilt";
 
 // WebGL must load client-side only
 const WebGLBackdrop = dynamic(() => import("./WebGLBackdrop"), { ssr: false });
@@ -31,6 +32,18 @@ export default function Hero() {
     my.set((e.clientY - r.top) / r.height - 0.5);
   };
   const onLeave = () => { mx.set(0); my.set(0); };
+
+  // Mobile: gyroscope drives the same tilt the cursor does. The gyro vector is
+  // −1…+1; the cursor convention here is −0.5…+0.5, so halve it to match feel.
+  const tilt = useDeviceTilt();
+  useEffect(() => {
+    if (!tilt?.enabled) return;
+    mx.set(tilt.tiltX.get() * 0.5);
+    my.set(tilt.tiltY.get() * 0.5);
+    const ux = tilt.tiltX.on("change", (v) => mx.set(v * 0.5));
+    const uy = tilt.tiltY.on("change", (v) => my.set(v * 0.5));
+    return () => { ux(); uy(); };
+  }, [tilt, mx, my]);
 
   // scroll-driven recede into space
   const { scrollYProgress } = useScroll({ target: ref, offset: ["start start", "end start"] });
@@ -83,19 +96,21 @@ export default function Hero() {
         </motion.div>
       </motion.div>
 
-      {/* scroll cue */}
-      <motion.div
-        style={{ opacity: fade }}
-        className="pointer-events-none absolute bottom-8 left-1/2 z-10 -translate-x-1/2"
-      >
-        <div className="flex h-10 w-6 items-start justify-center rounded-full border border-black/20 p-1.5">
-          <motion.div
-            animate={{ y: [0, 10, 0] }}
-            transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
-            className="h-1.5 w-1.5 rounded-full bg-black/40"
-          />
-        </div>
-      </motion.div>
+      {/* scroll cue — suppressed while the tilt opt-in popup occupies the bottom */}
+      {!tilt?.promptVisible && (
+        <motion.div
+          style={{ opacity: fade }}
+          className="pointer-events-none absolute bottom-8 left-1/2 z-10 -translate-x-1/2"
+        >
+          <div className="flex h-10 w-6 items-start justify-center rounded-full border border-black/20 p-1.5">
+            <motion.div
+              animate={{ y: [0, 10, 0] }}
+              transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
+              className="h-1.5 w-1.5 rounded-full bg-black/40"
+            />
+          </div>
+        </motion.div>
+      )}
     </section>
   );
 }

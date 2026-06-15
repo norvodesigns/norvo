@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import {
   motion,
   useMotionValue,
@@ -9,9 +9,12 @@ import {
   useMotionTemplate,
 } from "motion/react";
 import Button from "./Button";
+import { useDeviceTilt } from "./DeviceTilt";
 
 const ease = [0.22, 1, 0.36, 1] as const;
-const SP = { stiffness: 120, damping: 17 };
+// Slightly under-damped so that on mouse-leave (raw → 0) everything eases home
+// with a soft bounce instead of snapping.
+const SP = { stiffness: 110, damping: 14 };
 
 // Glowing depth orbs — each at a different tz; they visibly separate as you tilt
 const ORBS = [
@@ -46,22 +49,27 @@ function Line({
 export default function CtaSection() {
   const sectionRef = useRef<HTMLElement>(null);
 
-  // Normalised mouse position: −1 … +1
+  // Normalised pointer/tilt position: −1 … +1
   const rawX = useMotionValue(0);
   const rawY = useMotionValue(0);
 
-  // Spring-smoothed tilt
-  const rotateY = useSpring(useTransform(rawX, [-1, 1], [-9, 9]),  SP);
-  const rotateX = useSpring(useTransform(rawY, [-1, 1], [ 7, -7]), SP);
+  // One spring drives EVERYTHING (tilt, glow, sheen) so they move together and,
+  // on mouse-leave, all ease back to centre with the same gentle bounce — the
+  // glow used to read straight off rawX/rawY and so snapped instantly.
+  const springX = useSpring(rawX, SP);
+  const springY = useSpring(rawY, SP);
 
-  // Background glow tracks cursor like a moving light source
-  const glowX = useTransform(rawX, [-1, 1], ["12%", "88%"]);
-  const glowY = useTransform(rawY, [-1, 1], ["12%", "88%"]);
+  const rotateY = useTransform(springX, [-1, 1], [-9, 9]);
+  const rotateX = useTransform(springY, [-1, 1], [ 7, -7]);
+
+  // Background glow tracks the pointer like a moving light source
+  const glowX = useTransform(springX, [-1, 1], ["12%", "88%"]);
+  const glowY = useTransform(springY, [-1, 1], ["12%", "88%"]);
   const glowBg = useMotionTemplate`radial-gradient(ellipse at ${glowX} ${glowY}, #0D7A7A 0%, #1A9494 55%, transparent 72%)`;
 
   // Subtle specular sheen on the surface
-  const sheenX = useTransform(rawX, [-1, 1], ["35%", "65%"]);
-  const sheenY = useTransform(rawY, [-1, 1], ["35%", "65%"]);
+  const sheenX = useTransform(springX, [-1, 1], ["35%", "65%"]);
+  const sheenY = useTransform(springY, [-1, 1], ["35%", "65%"]);
   const sheen  = useMotionTemplate`radial-gradient(circle at ${sheenX} ${sheenY}, rgba(255,255,255,0.042) 0%, transparent 52%)`;
 
   const onMove = (e: React.MouseEvent<HTMLElement>) => {
@@ -71,6 +79,17 @@ export default function CtaSection() {
     rawY.set((e.clientY - rect.top)   / rect.height * 2 - 1);
   };
   const onLeave = () => { rawX.set(0); rawY.set(0); };
+
+  // Mobile: drive the same raw position from the gyroscope (−1…+1 matches).
+  const tilt = useDeviceTilt();
+  useEffect(() => {
+    if (!tilt?.enabled) return;
+    rawX.set(tilt.tiltX.get());
+    rawY.set(tilt.tiltY.get());
+    const ux = tilt.tiltX.on("change", (v) => rawX.set(v));
+    const uy = tilt.tiltY.on("change", (v) => rawY.set(v));
+    return () => { ux(); uy(); };
+  }, [tilt, rawX, rawY]);
 
   return (
     <section
