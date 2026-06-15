@@ -73,7 +73,7 @@ function ServiceHero() {
         className="pointer-events-none absolute inset-0 -z-10"
         style={{
           background:
-            "radial-gradient(circle at 50% 50%, rgba(217, 164, 65, 0.05) 0%, transparent 70%)",
+            "radial-gradient(circle at 50% 50%, rgba(13, 122, 122, 0.04) 0%, transparent 70%)",
         }}
       />
     </section>
@@ -256,193 +256,295 @@ function CustomWebsiteDesignVisual() {
   );
 }
 
-function WebsiteRedesignsVisual() {
+// ============================================================================
+// REUSABLE BEFORE/AFTER SLIDER
+// ============================================================================
+interface BeforeAfterSliderProps {
+  beforeSrc: string;
+  afterSrc: string;
+  label: string;
+}
+
+function BeforeAfterSlider({ beforeSrc, afterSrc, label }: BeforeAfterSliderProps) {
   const [sliderPosition, setSliderPosition] = useState(50);
   const [isDragging, setIsDragging] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const handleMouseMove = (e: React.MouseEvent) => {
-    if (!isDragging || !containerRef.current) return;
+  const getPosition = (clientX: number) => {
+    if (!containerRef.current) return;
     const rect = containerRef.current.getBoundingClientRect();
-    const newPosition = ((e.clientX - rect.left) / rect.width) * 100;
+    const newPosition = ((clientX - rect.left) / rect.width) * 100;
     setSliderPosition(Math.max(0, Math.min(100, newPosition)));
   };
 
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isDragging) return;
+    getPosition(e.clientX);
+  };
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setIsDragging(true);
+    getPosition(e.touches[0].clientX);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isDragging) return;
+    e.preventDefault();
+    getPosition(e.touches[0].clientX);
+  };
+
+  const handleTouchEnd = () => {
+    setIsDragging(false);
+  };
+
+  // Attach touch listener as non-passive so preventDefault works
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const onTouchMove = (e: TouchEvent) => {
+      if (!isDragging) return;
+      e.preventDefault();
+      const rect = el.getBoundingClientRect();
+      const newPosition = ((e.touches[0].clientX - rect.left) / rect.width) * 100;
+      setSliderPosition(Math.max(0, Math.min(100, newPosition)));
+    };
+    el.addEventListener("touchmove", onTouchMove, { passive: false });
+    return () => el.removeEventListener("touchmove", onTouchMove);
+  }, [isDragging]);
+
+  return (
+    <div className="space-y-2">
+      <div className="text-xs font-light tracking-widest text-gray-400 uppercase">{label}</div>
+      <div
+        ref={containerRef}
+        onMouseMove={handleMouseMove}
+        onMouseDown={() => setIsDragging(true)}
+        onMouseUp={() => setIsDragging(false)}
+        onMouseLeave={() => setIsDragging(false)}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+        className="relative w-full cursor-col-resize select-none overflow-hidden rounded-xl shadow-md"
+        style={{ aspectRatio: "16/9" }}
+      >
+        {/* After — full background (right side) */}
+        <img
+          src={afterSrc}
+          alt="After redesign"
+          className="absolute inset-0 h-full w-full object-cover object-top"
+        />
+
+        {/* Before — clipped to left of slider */}
+        <div
+          className="absolute inset-0 overflow-hidden"
+          style={{ width: `${sliderPosition}%` }}
+        >
+          <img
+            src={beforeSrc}
+            alt="Before redesign"
+            className="absolute inset-0 h-full object-cover object-top"
+            style={{ width: containerRef.current?.offsetWidth ?? "100%" }}
+          />
+        </div>
+
+        {/* Divider line */}
+        <div
+          className="absolute inset-y-0 w-px bg-white shadow-lg"
+          style={{ left: `${sliderPosition}%` }}
+        >
+          {/* Handle */}
+          <div className="absolute left-1/2 top-1/2 flex h-10 w-10 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border-2 border-white bg-gradient-to-r from-[#0D7A7A] to-[#D9A441] shadow-xl">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <path d="M5 8L2 5M2 5L5 2M2 5h12M11 8l3 3M14 11l-3 3M14 11H2" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </div>
+        </div>
+
+        {/* Labels */}
+        <div className="pointer-events-none absolute inset-0 flex items-end justify-between p-3">
+          <span className="rounded-md bg-black/50 px-2.5 py-1 text-xs font-light tracking-wide text-white backdrop-blur-sm">Before</span>
+          <span className="rounded-md bg-black/50 px-2.5 py-1 text-xs font-light tracking-wide text-white backdrop-blur-sm">After</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function WebsiteRedesignsVisual() {
   return (
     <motion.div
-      initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: 1, scale: 1 }}
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.8 }}
-      ref={containerRef}
-      onMouseMove={handleMouseMove}
-      onMouseDown={() => setIsDragging(true)}
-      onMouseUp={() => setIsDragging(false)}
-      onMouseLeave={() => setIsDragging(false)}
-      className="relative h-80 w-full max-w-md cursor-col-resize select-none overflow-hidden rounded-lg"
+      className="w-full max-w-lg space-y-6"
     >
-      <div className="absolute inset-0 flex items-center justify-center overflow-hidden bg-gray-100">
-        <div className="space-y-3 p-6 grayscale blur-sm">
-          <div className="h-3 w-32 rounded bg-gray-300" />
-          <div className="h-2 w-24 rounded bg-gray-300" />
-          <div className="mt-6 space-y-2">
-            <div className="h-2 w-full rounded bg-gray-300" />
-            <div className="h-2 w-5/6 rounded bg-gray-300" />
-            <div className="h-2 w-4/6 rounded bg-gray-300" />
-          </div>
-          <div className="mt-4 grid grid-cols-2 gap-2">
-            <div className="h-16 rounded bg-gray-300" />
-            <div className="h-16 rounded bg-gray-300" />
-          </div>
-        </div>
-      </div>
-
-      <motion.div
-        animate={{ clipPath: `inset(0 ${100 - sliderPosition}% 0 0)` }}
-        className="absolute inset-0 flex items-center justify-center bg-white"
-      >
-        <div className="space-y-3 p-6">
-          <div className="h-3 w-32 rounded bg-gradient-to-r from-[#0D7A7A] to-[#D9A441]" />
-          <div className="h-2 w-24 rounded bg-teal-200" />
-          <div className="mt-6 space-y-2">
-            <div className="h-2 w-full rounded bg-teal-100" />
-            <div className="h-2 w-5/6 rounded bg-teal-100" />
-            <div className="h-2 w-4/6 rounded bg-teal-100" />
-          </div>
-          <div className="mt-4 grid grid-cols-2 gap-2">
-            <div className="h-16 rounded bg-gradient-to-br from-teal-50 to-amber-50" />
-            <div className="h-16 rounded bg-gradient-to-br from-teal-50 to-amber-50" />
-          </div>
-        </div>
-      </motion.div>
-
-      <motion.div
-        animate={{ left: `${sliderPosition}%` }}
-        className="absolute inset-y-0 w-1 cursor-col-resize bg-gradient-to-b from-[#0D7A7A] to-[#D9A441]"
-      >
-        <div className="absolute left-1/2 top-1/2 h-10 w-10 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white bg-gradient-to-r from-[#0D7A7A] to-[#D9A441] shadow-lg" />
-      </motion.div>
-
-      <div className="pointer-events-none absolute inset-0 flex items-end justify-between p-4 text-xs font-light text-white">
-        <span className="rounded bg-black/30 px-2 py-1 backdrop-blur-sm">Before</span>
-        <span className="rounded bg-black/30 px-2 py-1 backdrop-blur-sm">After</span>
-      </div>
+      <BeforeAfterSlider
+        beforeSrc="/mozartlaser-hero/before.jpeg"
+        afterSrc="/mozartlaser-hero/after.jpeg"
+        label="Hero Section"
+      />
+      <BeforeAfterSlider
+        beforeSrc="/mozartlaser-products/before.jpeg"
+        afterSrc="/mozartlaser-products/after.jpeg"
+        label="Products Page"
+      />
     </motion.div>
   );
 }
 
 function MobileOptimizationVisual() {
-  const [layoutIndex, setLayoutIndex] = useState(0);
+  const iframeRef   = useRef<HTMLIFrameElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const posRef      = useRef(0);
+  const dirRef      = useRef(1);   // 1 = scrolling down, -1 = scrolling up
+  const rafRef      = useRef<number>(0);
+  const runningRef  = useRef(false);
+
+  const SCREEN_W  = 204;
+  const IFRAME_W  = 390;
+  const IFRAME_H  = 844;
+  const scale     = SCREEN_W / IFRAME_W;
+  const NOTCH_H   = 20;
+  const MAX_SCROLL = 3200;
+  const SPEED     = 2.5;
+
+  const injectStyles = () => {
+    const doc = iframeRef.current?.contentDocument;
+    if (!doc?.head || doc.getElementById("nrv-hide")) return;
+    const s = doc.createElement("style");
+    s.id = "nrv-hide";
+    s.textContent = "::-webkit-scrollbar{display:none}html,body{scrollbar-width:none;-ms-overflow-style:none}";
+    doc.head.appendChild(s);
+  };
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      setLayoutIndex((prev) => (prev + 1) % 3);
-    }, 3000);
-    return () => clearInterval(interval);
+    const el = containerRef.current;
+    if (!el) return;
+
+    const tick = () => {
+      if (!runningRef.current) return;
+
+      const win = iframeRef.current?.contentWindow;
+      if (win) {
+        posRef.current += SPEED * dirRef.current;
+
+        if (posRef.current >= MAX_SCROLL) {
+          posRef.current = MAX_SCROLL;
+          dirRef.current = -1;
+        } else if (posRef.current <= 0) {
+          posRef.current = 0;
+          dirRef.current = 1;
+        }
+
+        win.scrollTo({ top: posRef.current, behavior: "instant" as ScrollBehavior });
+      }
+
+      rafRef.current = requestAnimationFrame(tick);
+    };
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && !runningRef.current) {
+          injectStyles();
+          runningRef.current = true;
+          rafRef.current = requestAnimationFrame(tick);
+        } else if (!entry.isIntersecting && runningRef.current) {
+          runningRef.current = false;
+          cancelAnimationFrame(rafRef.current);
+        }
+      },
+      { threshold: 0.2 }
+    );
+
+    observer.observe(el);
+    return () => {
+      observer.disconnect();
+      runningRef.current = false;
+      cancelAnimationFrame(rafRef.current);
+    };
   }, []);
 
-  const layouts = [
-    {
-      title: "Hero View",
-      content: (
-        <div className="space-y-4 p-4">
-          <div className="h-20 w-full rounded-lg bg-gradient-to-r from-[#0D7A7A] to-[#D9A441]" />
-          <div className="h-3 w-3/4 rounded bg-gray-200" />
-          <div className="h-2 w-1/2 rounded bg-gray-200" />
-        </div>
-      ),
-    },
-    {
-      title: "Content View",
-      content: (
-        <div className="space-y-3 p-4">
-          <div className="h-2 w-1/2 rounded bg-[#0D7A7A]" />
-          <div className="space-y-2">
-            <div className="h-2 w-full rounded bg-gray-200" />
-            <div className="h-2 w-5/6 rounded bg-gray-200" />
-            <div className="h-2 w-4/6 rounded bg-gray-200" />
-          </div>
-          <div className="mt-3 h-24 rounded-lg bg-gray-100" />
-        </div>
-      ),
-    },
-    {
-      title: "Interactive",
-      content: (
-        <div className="space-y-3 p-4">
-          <div className="grid grid-cols-2 gap-2">
-            <div className="h-12 rounded-lg bg-teal-100" />
-            <div className="h-12 rounded-lg bg-teal-100" />
-          </div>
-          <div className="h-2 w-full rounded bg-gray-200" />
-          <div className="h-2 w-3/4 rounded bg-gray-200" />
-        </div>
-      ),
-    },
-  ];
-
   return (
-    <div className="flex flex-col items-center gap-8">
-      <motion.div
-        initial={{ opacity: 0, y: 40, scale: 0.9 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        transition={{ duration: 0.8 }}
-        className="relative h-96 w-48 rounded-3xl border-8 border-gray-900 bg-black shadow-2xl"
-      >
-        <div className="absolute -top-1 left-1/2 z-20 h-6 w-32 -translate-x-1/2 rounded-b-2xl bg-black" />
-        <motion.div
-          key={layoutIndex}
-          animate={{ opacity: 1 }}
-          initial={{ opacity: 0 }}
-          transition={{ duration: 0.5 }}
-          className="h-full overflow-hidden rounded-2xl bg-white"
-        >
-          {layouts[layoutIndex].content}
-        </motion.div>
-        <div className="absolute -bottom-3 left-1/2 h-1 w-32 -translate-x-1/2 rounded-full bg-gray-900" />
-      </motion.div>
+    <motion.div
+      ref={containerRef}
+      initial={{ opacity: 0, y: 40, scale: 0.9 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{ duration: 0.8 }}
+      className="flex flex-col items-center gap-6"
+    >
+      {/* Phone frame */}
+      <div className="relative w-56 rounded-[2.8rem] border-[10px] border-gray-900 bg-gray-900 shadow-2xl ring-1 ring-white/10">
+        {/* Notch */}
+        <div className="absolute left-1/2 top-0 z-20 h-5 w-28 -translate-x-1/2 rounded-b-2xl bg-gray-900" />
 
-      <div className="relative h-48 w-64">
-        <motion.div
-          animate={{ y: [0, -10, 0] }}
-          transition={{ duration: 4, repeat: Infinity }}
-          className="absolute -left-8 -top-8 h-72 w-40 rounded-3xl border-6 border-gray-400 bg-black shadow-lg"
+        {/* Screen */}
+        <div
+          className="relative overflow-hidden rounded-[2rem] bg-white"
+          style={{ aspectRatio: "9/19.5" }}
         >
-          <div className="h-full rounded-2xl bg-teal-50" />
-        </motion.div>
-        <motion.div
-          animate={{ y: [0, 10, 0] }}
-          transition={{ duration: 4, repeat: Infinity, delay: 0.2 }}
-          className="absolute -right-8 top-8 h-72 w-40 rounded-3xl border-6 border-gray-300 bg-black shadow-lg"
-        >
-          <div className="h-full rounded-2xl bg-amber-50" />
-        </motion.div>
+          {/* Bar covering the notch area — matches Harborview navbar color so corners look natural */}
+          <div className="absolute left-0 right-0 top-0 z-10" style={{ height: NOTCH_H, background: "#f5f3ef" }} />
+
+          {/* Live site iframe, scaled to fit the phone screen */}
+          <iframe
+            ref={iframeRef}
+            src="/norvo-example-site.html"
+            title="Norvo mobile experience preview"
+            onLoad={injectStyles}
+            style={{
+              position: "absolute",
+              top: NOTCH_H,
+              left: 0,
+              width: IFRAME_W,
+              height: IFRAME_H,
+              border: "none",
+              transform: `scale(${scale})`,
+              transformOrigin: "top left",
+              pointerEvents: "none",
+            }}
+          />
+
+          {/* Full interaction blocker — prevents any touch/scroll/click on the iframe */}
+          <div
+            className="absolute inset-0 z-20"
+            style={{ touchAction: "none" }}
+          />
+
+          {/* Hamburger menu icon — purely decorative */}
+          <div className="absolute right-3 top-6 z-30 flex flex-col gap-[4px]">
+            <div className="h-[2px] w-4 rounded-full bg-gray-800" />
+            <div className="h-[2px] w-4 rounded-full bg-gray-800" />
+            <div className="h-[2px] w-3 rounded-full bg-gray-800" />
+          </div>
+        </div>
+
+        {/* Home bar */}
+        <div className="mt-2 flex justify-center pb-1">
+          <div className="h-1 w-24 rounded-full bg-gray-600" />
+        </div>
       </div>
 
-      <motion.div
-        key={layoutIndex}
-        animate={{ opacity: 1 }}
-        initial={{ opacity: 0 }}
-        className="text-center text-sm font-light text-gray-600"
-      >
-        {layouts[layoutIndex].title}
-      </motion.div>
-    </div>
+      <p className="text-center text-xs font-light tracking-widest text-gray-400 uppercase">
+        Premium mobile experience
+      </p>
+    </motion.div>
   );
 }
 
 function InteractiveExperiencesVisual() {
   const [counter, setCounter] = useState(0);
   const [revealed, setRevealed] = useState(false);
+  const barRef = useRef(null);
+  const barInView = useInView(barRef, { once: true });
 
   useEffect(() => {
     let count = 0;
     const increment = () => {
-      if (count < 245) {
-        count += Math.ceil((245 - count) / 10);
+      if (count < 65) {
+        count += Math.ceil((65 - count) / 10);
         setCounter(count);
         setTimeout(increment, 30);
       } else {
-        setCounter(245);
+        setCounter(65);
       }
     };
     increment();
@@ -452,7 +554,7 @@ function InteractiveExperiencesVisual() {
     setTimeout(() => setRevealed(true), 500);
   }, []);
 
-  const text = "Interactive motion that guides your story.";
+  const text = "Design is the silent ambassador of your brand.";
 
   return (
     <motion.div
@@ -461,76 +563,83 @@ function InteractiveExperiencesVisual() {
       transition={{ duration: 0.8 }}
       className="space-y-8"
     >
+      {/* Fills once to 82%, never restarts */}
       <div className="space-y-2">
-        <div className="text-xs font-light text-gray-500">Scroll Progress</div>
+        <div className="text-xs font-light text-gray-500">Scroll Depth Tracking</div>
         <div className="overflow-hidden rounded-lg bg-gray-100 p-3">
-          <div className="mb-2 text-xs text-gray-600">Engagement Rate</div>
-          <div className="h-2 w-full overflow-hidden rounded-full bg-gray-200">
+          <div className="mb-2 text-xs text-gray-600">Avg. scroll depth on interactive pages</div>
+          <div ref={barRef} className="h-2 w-full overflow-hidden rounded-full bg-gray-200">
             <motion.div
-              animate={{ scaleX: [0, 1, 0.7, 1] }}
-              transition={{ duration: 4, repeat: Infinity }}
+              initial={{ scaleX: 0 }}
+              animate={barInView ? { scaleX: 0.82 } : {}}
+              transition={{ duration: 1.5, ease: "easeOut" }}
               className="h-full origin-left bg-gradient-to-r from-[#0D7A7A] to-[#D9A441]"
             />
           </div>
+          <div className="mt-1 text-right text-xs text-gray-400">82% vs 31% industry avg</div>
         </div>
       </div>
 
+      {/* repeatType "mirror" — layers glide back and forth, never jump */}
       <div className="space-y-2">
-        <div className="text-xs font-light text-gray-500">Parallax Depth</div>
+        <div className="text-xs font-light text-gray-500">Parallax Depth Layers</div>
         <div className="relative h-32 overflow-hidden rounded-lg bg-gradient-to-br from-teal-50 to-amber-50">
           <motion.div
-            animate={{ x: [0, 20, 0] }}
-            transition={{ duration: 3, repeat: Infinity }}
-            className="absolute inset-y-0 left-0 w-1/3 bg-teal-200 opacity-60"
-          />
+            animate={{ x: 20 }}
+            transition={{ duration: 3.5, repeat: Infinity, repeatType: "mirror", ease: "easeInOut" }}
+            className="absolute inset-y-0 left-0 w-1/3 bg-teal-200 opacity-60 flex items-end justify-center pb-2"
+          >
+            <span className="text-[10px] font-light text-teal-800">Background</span>
+          </motion.div>
           <motion.div
-            animate={{ x: [0, 40, 0] }}
-            transition={{ duration: 3, repeat: Infinity, delay: 0.1 }}
-            className="absolute inset-y-0 left-1/4 w-1/3 bg-teal-300 opacity-70"
-          />
+            animate={{ x: 40 }}
+            transition={{ duration: 3.5, repeat: Infinity, repeatType: "mirror", ease: "easeInOut", delay: 0.15 }}
+            className="absolute inset-y-0 left-1/4 w-1/3 bg-teal-300 opacity-70 flex items-end justify-center pb-2"
+          >
+            <span className="text-[10px] font-light text-teal-900">Midground</span>
+          </motion.div>
           <motion.div
-            animate={{ x: [0, 60, 0] }}
-            transition={{ duration: 3, repeat: Infinity, delay: 0.2 }}
-            className="absolute inset-y-0 left-1/2 w-1/3 bg-amber-300 opacity-80"
-          />
+            animate={{ x: 60 }}
+            transition={{ duration: 3.5, repeat: Infinity, repeatType: "mirror", ease: "easeInOut", delay: 0.3 }}
+            className="absolute inset-y-0 left-1/2 w-1/3 bg-amber-300 opacity-80 flex items-end justify-center pb-2"
+          >
+            <span className="text-[10px] font-light text-amber-900">Foreground</span>
+          </motion.div>
         </div>
       </div>
 
       <div className="space-y-2">
-        <div className="text-xs font-light text-gray-500">Counter</div>
+        <div className="text-xs font-light text-gray-500">Live Stat</div>
         <div className="rounded-lg bg-gray-100 p-4">
           <div className="text-center">
             <motion.div
-              animate={{ scale: [1, 1.1, 1] }}
-              transition={{ duration: 0.5, repeat: Infinity, repeatDelay: 2 }}
+              animate={{ scale: [1, 1.05, 1] }}
+              transition={{ duration: 3, repeat: Infinity, repeatType: "mirror", ease: "easeInOut" }}
               className="text-4xl font-light text-[#0D7A7A]"
             >
               {counter}%
             </motion.div>
-            <div className="mt-1 text-xs text-gray-600">Conversion Increase</div>
+            <div className="mt-1 text-xs text-gray-600">of web traffic is now mobile</div>
           </div>
         </div>
       </div>
 
       <div className="space-y-2">
-        <div className="text-xs font-light text-gray-500">Text Animation</div>
+        <div className="text-xs font-light text-gray-500">Text Reveal</div>
         <div className="rounded-lg bg-gray-100 p-4">
           <div className="text-center text-sm font-light text-gray-800">
             {text.split("").map((char, i) => (
               <motion.span
                 key={i}
-                initial={{ opacity: 0, color: "#3b82f6" }}
+                initial={{ opacity: 0, color: "#0D7A7A" }}
                 animate={revealed ? { opacity: 1, color: "#1f2937" } : {}}
-                transition={{
-                  duration: 0.3,
-                  delay: i * 0.05,
-                  ease: "easeOut",
-                }}
+                transition={{ duration: 0.3, delay: i * 0.04, ease: "easeOut" }}
               >
                 {char}
               </motion.span>
             ))}
           </div>
+          <div className="mt-2 text-center text-xs text-gray-400">— Paul Rand</div>
         </div>
       </div>
     </motion.div>
@@ -550,12 +659,12 @@ function PerformanceOptimizationVisual() {
       className="grid grid-cols-2 gap-4"
     >
       {[
-        { label: "Page Load", value: "1.2s", type: "gauge" },
-        { label: "Lighthouse", value: "98/100", type: "text" },
-        { label: "Core Web Vitals", value: "✓", type: "circle" },
-        { label: "Image Optimization", value: 92, type: "bar" },
-        { label: "Code Splitting", value: "✓", type: "circle" },
-        { label: "CDN Performance", value: 99, type: "bar" },
+        { label: "LCP",            value: "1.4s",    type: "gauge",  sub: "Largest Contentful Paint" },
+        { label: "Lighthouse",     value: "98/100",  type: "text",   sub: "Performance score" },
+        { label: "Core Web Vitals",value: "✓",       type: "circle", sub: "All green" },
+        { label: "Speed Index",    value: 94,        type: "bar",    sub: "94 / 100" },
+        { label: "Zero CLS",       value: "✓",       type: "circle", sub: "No layout shift" },
+        { label: "TTFB",           value: 91,        type: "bar",    sub: "Time to first byte" },
       ].map((metric, i) => (
         <motion.div
           key={i}
@@ -564,9 +673,10 @@ function PerformanceOptimizationVisual() {
           transition={{ duration: 0.6, delay: i * 0.1 }}
           className="rounded-lg border border-gray-200 bg-white p-4"
         >
-          <div className="mb-3 text-xs font-light text-gray-500 uppercase tracking-widest">
+          <div className="mb-1 text-xs font-light text-gray-500 uppercase tracking-widest">
             {metric.label}
           </div>
+          <div className="mb-3 text-[10px] text-gray-400">{metric.sub}</div>
           {metric.type === "gauge" && (
             <div className="space-y-2">
               <motion.div
@@ -598,7 +708,7 @@ function PerformanceOptimizationVisual() {
               initial={{ scale: 0 }}
               animate={isInView ? { scale: 1 } : {}}
               transition={{ duration: 0.8, delay: i * 0.1 + 0.2 }}
-              className="inline-flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-green-100 to-green-50 text-2xl font-light text-green-600"
+              className="inline-flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-teal-100 to-teal-50 text-2xl font-light text-[#0D7A7A]"
             >
               {metric.value}
             </motion.div>
@@ -625,9 +735,9 @@ function BrandExperienceDesignVisual() {
         <h3 className="mb-4 text-sm font-light text-gray-500">Typography</h3>
         <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
           {[
-            { name: "Display Light", size: "text-2xl", weight: "font-light" },
-            { name: "Body Regular", size: "text-xl", weight: "font-normal" },
-            { name: "Bold", size: "text-lg", weight: "font-bold" },
+            { name: "Sora Light 300",  size: "text-2xl", weight: "font-light" },
+            { name: "Sora Regular 400", size: "text-xl", weight: "font-normal" },
+            { name: "Sora SemiBold 600", size: "text-lg", weight: "font-semibold" },
           ].map((item, i) => (
             <motion.div
               key={i}
@@ -636,8 +746,8 @@ function BrandExperienceDesignVisual() {
               transition={{ duration: 0.6, delay: i * 0.08 }}
               className="rounded-lg border border-gray-200 bg-white p-4"
             >
-              <div className={`${item.size} ${item.weight}`}>Aa</div>
-              <div className="mt-2 text-xs text-gray-600">{item.name}</div>
+              <div className={`${item.size} ${item.weight} font-sans`}>Aa</div>
+              <div className="mt-2 text-xs text-gray-500">{item.name}</div>
             </motion.div>
           ))}
         </div>
@@ -647,10 +757,10 @@ function BrandExperienceDesignVisual() {
         <h3 className="mb-4 text-sm font-light text-gray-500">Colors</h3>
         <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
           {[
-            { name: "Teal", color: "bg-[#0D7A7A]" },
-            { name: "Gold", color: "bg-[#D9A441]" },
-            { name: "Accent 1", color: "bg-teal-100" },
-            { name: "Accent 2", color: "bg-amber-100" },
+            { name: "Teal  #0D7A7A",  color: "bg-[#0D7A7A]" },
+            { name: "Gold  #D9A441",  color: "bg-[#D9A441]" },
+            { name: "Teal Light",     color: "bg-teal-100" },
+            { name: "Amber Light",    color: "bg-amber-100" },
           ].map((item, i) => (
             <motion.div
               key={i}
@@ -954,10 +1064,34 @@ function WhyNorvoSection() {
 // ============================================================================
 function ResultsSection() {
   const results = [
-    { stat: "3.2", label: "First Impression", description: "First impressions happen in milliseconds. A premium design establishes credibility instantly.", type: "number" },
-    { stat: "73", label: "Trust Increase", description: "Visitors trust professional websites more. Premium design signals quality and reliability.", type: "percentage" },
-    { stat: "2.5", label: "Time on Site", description: "Beautiful, interactive experiences keep visitors engaged. More time on site = more conversions.", type: "ratio" },
-    { stat: "89", label: "Brand Recall", description: "Memorable design creates lasting impressions. Your brand stands out in competitive markets.", type: "percentage" },
+    {
+      stat: "50",
+      display: "50ms",
+      label: "First Impression",
+      description: "Users form a judgment about your website in 50 milliseconds — before they've read a single word. Your design is doing the talking.",
+      source: "Google UX Research",
+    },
+    {
+      stat: "75",
+      display: "75%",
+      label: "Credibility From Design",
+      description: "75% of people judge a company's credibility based entirely on its website design. A poor site doesn't just look bad — it loses trust.",
+      source: "Stanford Web Credibility Study",
+    },
+    {
+      stat: "88",
+      display: "88%",
+      label: "Won't Return After Bad UX",
+      description: "88% of users are less likely to return to a website after a bad experience. There's rarely a second chance to make a first impression.",
+      source: "UX Planet / Gomez",
+    },
+    {
+      stat: "53",
+      display: "53%",
+      label: "Mobile Abandonment",
+      description: "53% of mobile users abandon a page that takes longer than 3 seconds to load. Speed and beauty have to work together.",
+      source: "Google / SOASTA Research",
+    },
   ];
 
   return (
@@ -1014,16 +1148,13 @@ function ResultsSection() {
                   className="mb-4"
                 >
                   <div className="text-5xl font-light bg-gradient-to-r from-[#0D7A7A] to-[#D9A441] bg-clip-text text-transparent md:text-4xl">
-                    {result.type === "percentage"
-                      ? `${Math.round(displayValue)}%`
-                      : result.type === "ratio"
-                      ? `${displayValue.toFixed(1)}x`
-                      : `${displayValue.toFixed(1)}s`}
+                    {result.display}
                   </div>
                 </motion.div>
 
                 <div className="mb-3 text-sm font-light uppercase tracking-widest text-gray-500">{result.label}</div>
                 <p className="text-base leading-relaxed text-gray-700">{result.description}</p>
+                <div className="mt-4 text-xs text-gray-400 italic">Source: {result.source}</div>
 
                 <motion.div
                   initial={{ scaleX: 0 }}
