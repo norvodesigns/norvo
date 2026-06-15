@@ -19,6 +19,10 @@
 }
 
 html {
+  /* With no viewport-fit=cover, iOS fills the safe-area strip above the nav
+     (beside/around the Dynamic Island) with the root background-color. Keep it
+     white so that strip reads as blank — nothing shows above the navbar. */
+  background: var(--background);
   scroll-behavior: smooth;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;

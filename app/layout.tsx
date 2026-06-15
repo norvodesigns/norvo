@@ -1,4 +1,4 @@
-import type { Metadata, Viewport } from "next";
+import type { Metadata } from "next";
 import { Geist, Sora } from "next/font/google";
 import "./globals.css";
 import CursorTrail from "@/components/CursorTrail";
@@ -29,13 +29,11 @@ export const metadata: Metadata = {
   },
 };
 
-// viewport-fit=cover lets the page extend edge-to-edge into the device safe
-// areas (e.g. behind the iPhone dynamic island) so the fixed nav can sit at the
-// true top of the screen. Merged on top of Next's defaults (width=device-width,
-// initial-scale=1), which are preserved.
-export const viewport: Viewport = {
-  viewportFit: "cover",
-};
+// NOTE: deliberately NO viewport-fit=cover. On iOS the layout viewport then
+// insets below the Dynamic Island, so the fixed nav sits right under the island
+// (the highest spot iOS will render a fixed element) and page content can't
+// scroll up into the strip beside/above the island. That strip is filled by the
+// root background-color instead — see html { background } in globals.css.
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (

@@ -41,24 +41,10 @@ export default function Nav() {
         transition={{ y: { duration: 0.6, ease: [0.22, 1, 0.36, 1] }, opacity: { duration: 0.6, delay: 0.15 } }}
         className="fixed inset-x-0 top-0 z-50"
       >
-        {/* Background layer — pulled UP past top:0 to fill the safe-area strip
-            and the rounded-corner gaps flanking the Dynamic Island. On iOS 26/27
-            Safari a fixed top:0 sits at the island's bottom edge, so padding-top
-            alone (which only grows downward) leaves those corners exposed and
-            page content scrolls through them. Anchored to the bar's bottom and
-            extended upward by max(env(safe-area-inset-top), 100px); the overshoot
-            above the physical screen top is clipped by the viewport, so it stays
-            correct even if iOS 27 beta under-reports env(safe-area-inset-top). */}
         <div
-          aria-hidden
-          className={`pointer-events-none absolute inset-x-0 bottom-0 transition-colors duration-500 ${
+          className={`transition-colors duration-500 ${
             scrolled && !open ? "border-b border-black/5 bg-white/70 backdrop-blur-xl" : ""
           }`}
-          style={{ top: "calc(max(env(safe-area-inset-top, 0px), 100px) * -1)" }}
-        />
-        <div
-          style={{ paddingTop: "env(safe-area-inset-top)" }}
-          className="relative z-10"
         >
           <motion.div
             animate={{ height: scrolled ? 52 : 80 }}
