@@ -49,8 +49,8 @@ export default function Nav() {
   const reduceMotion = useReducedMotion();
   const gx = useMotionValue(0);
   const gy = useMotionValue(0);
-  const menuRotX = useSpring(useTransform(gy, [-1, 1], [8, -8]), { stiffness: 90, damping: 13 });
-  const menuRotY = useSpring(useTransform(gx, [-1, 1], [-8, 8]), { stiffness: 90, damping: 13 });
+  const menuRotX = useSpring(useTransform(gy, [-1, 1], [18, -18]), { stiffness: 90, damping: 13 });
+  const menuRotY = useSpring(useTransform(gx, [-1, 1], [-10, 10]), { stiffness: 90, damping: 13 });
   useEffect(() => {
     if (reduceMotion || !open || !tilt?.enabled) return;
     const apply = () => { gx.set(tilt.tiltX.get()); gy.set(tilt.tiltY.get()); };

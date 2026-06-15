@@ -664,10 +664,16 @@ function SphereGroup({cap,pos,index,scrollRef,maxBloomRef,isMobile,bloomsArr,loo
 
     // Tilt the whole assembly toward the look direction (cursor / phone tilt).
     // Outer group rotation is otherwise unused — the orbit & flower spins live on
-    // inner child groups — so this is free to drive.
-    const MAXT = 0.30;
-    tiltCur.current.x += (lookRef.current.y * MAXT - tiltCur.current.x) * 0.05;
-    tiltCur.current.y += (lookRef.current.x * MAXT - tiltCur.current.y) * 0.05;
+    // inner child groups — so this is free to drive. CRUCIAL for mobile: only
+    // update the tilt while the scroll is settled (normVel < ~0.12). During an
+    // active scroll your hand naturally tilts the phone, and letting that wobble
+    // the flowers fights the scroll and reads as stutter — so we freeze the tilt
+    // mid-scroll (pure, buttery scroll) and let it ease back in once you stop.
+    if (normVel < 0.12) {
+      const MAXT = 0.30;
+      tiltCur.current.x += (lookRef.current.y * MAXT - tiltCur.current.x) * 0.06;
+      tiltCur.current.y += (lookRef.current.x * MAXT - tiltCur.current.y) * 0.06;
+    }
     groupRef.current.rotation.x = tiltCur.current.x;
     groupRef.current.rotation.y = tiltCur.current.y;
   });
@@ -1079,7 +1085,7 @@ export default function CapabilitySpheres(){
         </div>
         <div style={{flex:1,position:"relative"}}>
           <CanvasBoundary>
-          <Canvas frameloop="always" camera={{position:[0,0.3,7.5],fov:54}} dpr={[1, isMobile ? 1.5 : 2]}
+          <Canvas frameloop="always" camera={{position:[0,0.3,7.5],fov:54}} dpr={[1, isMobile ? 1.25 : 2]}
             gl={{antialias:!isMobile,alpha:false,powerPreference:"high-performance"}}
             onCreated={({gl})=>{gl.setClearColor(0xf8f7ff,1);glRef.current=gl;}}>
             <Suspense fallback={null}>
