@@ -50,7 +50,7 @@ const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 
 // How many degrees of tilt (from the angle you were holding the phone at when
 // you enabled it) maps to the full −1…+1 range.
-const TILT_RANGE_DEG = 26;
+const TILT_RANGE_DEG = 16;
 // Light low-pass on raw sensor data; the per-section springs do the rest.
 const SMOOTH = 0.2;
 

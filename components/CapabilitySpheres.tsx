@@ -1040,17 +1040,19 @@ export default function CapabilitySpheres(){
         </div>
         <div style={{flex:1,position:"relative"}}>
           <CanvasBoundary>
-          <Canvas frameloop="always" camera={{position:[0,0.3,7.5],fov:54}} dpr={[1,2]}
-            gl={{antialias:true,alpha:false,powerPreference:"high-performance"}}
+          <Canvas frameloop="always" camera={{position:[0,0.3,7.5],fov:54}} dpr={[1, isMobile ? 1.5 : 2]}
+            gl={{antialias:!isMobile,alpha:false,powerPreference:"high-performance"}}
             onCreated={({gl})=>{gl.setClearColor(0xf8f7ff,1);glRef.current=gl;}}>
             <Suspense fallback={null}>
               <Scene positions={positions} isMobile={isMobile} scrollRef={scrollRef} maxBloomRef={maxBloomRef}/>
             </Suspense>
-            <EffectComposer>
-              <Bloom intensity={0.85} luminanceThreshold={0.88} luminanceSmoothing={0.88} mipmapBlur/>
-              <ChromaticAberration blendFunction={BlendFunction.NORMAL} offset={new THREE.Vector2(0.0009,0.0009)}/>
-              <Vignette offset={0.30} darkness={0.32} blendFunction={BlendFunction.NORMAL}/>
-            </EffectComposer>
+            {!isMobile && (
+              <EffectComposer>
+                <Bloom intensity={0.85} luminanceThreshold={0.88} luminanceSmoothing={0.88} mipmapBlur/>
+                <ChromaticAberration blendFunction={BlendFunction.NORMAL} offset={new THREE.Vector2(0.0009,0.0009)}/>
+                <Vignette offset={0.30} darkness={0.32} blendFunction={BlendFunction.NORMAL}/>
+              </EffectComposer>
+            )}
           </Canvas>
           </CanvasBoundary>
 

@@ -21,7 +21,7 @@ function ServiceHero() {
   return (
     <section
       ref={ref}
-      className="relative flex min-h-[60vh] items-center justify-center overflow-hidden px-6 py-12"
+      className="relative flex min-h-[60vh] items-center justify-center overflow-hidden px-6 pt-32 pb-12 md:pt-40 md:pb-16"
     >
       <motion.div
         style={{ scale, opacity }}
@@ -62,9 +62,6 @@ function ServiceHero() {
         >
           <Button href="/projects" variant="primary">
             Explore our work
-          </Button>
-          <Button href="#services" variant="secondary">
-            Learn more
           </Button>
         </motion.div>
       </motion.div>

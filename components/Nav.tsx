@@ -14,9 +14,9 @@ const LINKS = [
 ];
 
 const item = {
-  hidden: { opacity: 0, y: 60, rotate: 7 },
-  show: { opacity: 1, y: 0, rotate: 0, transition: { type: "spring" as const, stiffness: 130, damping: 15 } },
-  exit: { opacity: 0, y: 40, rotate: -5, transition: { duration: 0.4, ease: [0.65, 0, 0.35, 1] as const } },
+  hidden: { opacity: 0, y: 28 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.42, ease: [0.22, 1, 0.36, 1] as const } },
+  exit: { opacity: 0, y: 16, transition: { duration: 0.22, ease: [0.65, 0, 0.35, 1] as const } },
 };
 
 export default function Nav() {
@@ -130,7 +130,7 @@ export default function Nav() {
               }}
             >
               {LINKS.map((l) => (
-                <motion.div key={l.href} variants={item} style={{ transformOrigin: "0% 100%" }}>
+                <motion.div key={l.href} variants={item}>
                   <Link
                     href={l.href}
                     onClick={() => setOpen(false)}
@@ -140,8 +140,8 @@ export default function Nav() {
                   </Link>
                 </motion.div>
               ))}
-              <motion.div className="mt-8" variants={item} style={{ transformOrigin: "0% 100%" }}>
-                <Button href="/start" variant="primary" withArrow>Start a project</Button>
+              <motion.div className="mt-8" variants={item}>
+                <Button href="/start" variant="primary" withArrow onClick={() => setOpen(false)}>Start a project</Button>
               </motion.div>
             </motion.nav>
 

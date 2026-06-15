@@ -12,6 +12,7 @@ type Props = {
   withArrow?: boolean;
   dark?: boolean;
   className?: string;
+  onClick?: () => void;
 };
 
 export default function Button({
@@ -22,6 +23,7 @@ export default function Button({
   withArrow = false,
   dark = false,
   className = "",
+  onClick,
 }: Props) {
   const ref = useRef<HTMLAnchorElement>(null);
   const lastTouchRef = useRef(0);
@@ -73,6 +75,7 @@ export default function Button({
           e.preventDefault();
           router.push(href);
         }
+        onClick?.();
       }}
       onPointerEnter={(e) => {
         if (e.pointerType === "touch") return;

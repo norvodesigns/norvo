@@ -4,6 +4,7 @@ import "./globals.css";
 import CursorTrail from "@/components/CursorTrail";
 import Nav from "@/components/Nav";
 import Footer from "@/components/Footer";
+import { DeviceTiltProvider } from "@/components/DeviceTilt";
 
 const geist = Geist({ variable: "--font-geist", subsets: ["latin"] });
 const sora = Sora({ variable: "--font-sora", subsets: ["latin"], weight: ["100", "200", "300", "400", "600", "700"] });
@@ -38,10 +39,12 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="en">
       <body className={`${geist.variable} ${sora.variable}`}>
-        <CursorTrail />
-        <Nav />
-        {children}
-        <Footer />
+        <DeviceTiltProvider>
+          <CursorTrail />
+          <Nav />
+          {children}
+          <Footer />
+        </DeviceTiltProvider>
       </body>
     </html>
   );
