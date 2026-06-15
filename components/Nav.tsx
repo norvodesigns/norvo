@@ -76,16 +76,25 @@ export default function Nav() {
         />
       </motion.header>
 
-      {/* Mobile: floating menu button (translucent circle, top-left). Replaces the
-          full-width navbar on small screens, so nothing has to cover the strip
-          beside the Dynamic Island — there's no bar to leak around. Sits below the
-          safe-area inset; opens the full-screen menu and morphs to an X to close. */}
+      {/* Mobile: floating wordmark (no background) top-left + hamburger circle
+          top-right. No full-width bar, so nothing has to cover the strip beside
+          the Dynamic Island. Both sit just below the safe-area inset. */}
+      <Link
+        href="/"
+        aria-label="Norvo home"
+        onClick={() => setOpen(false)}
+        style={{ top: "calc(env(safe-area-inset-top, 0px) + 1rem)" }}
+        className="fixed left-5 z-50 flex h-11 items-center md:hidden"
+      >
+        <Logo className="text-[1.7rem]" />
+      </Link>
+
       <button
         onClick={() => setOpen((o) => !o)}
         aria-label={open ? "Close menu" : "Open menu"}
         aria-expanded={open}
         style={{ top: "calc(env(safe-area-inset-top, 0px) + 1rem)" }}
-        className="fixed left-4 z-50 flex h-11 w-11 flex-col items-center justify-center gap-1.5 rounded-full border border-black/10 bg-white/70 shadow-sm backdrop-blur-xl md:hidden"
+        className="fixed right-4 z-50 flex h-11 w-11 flex-col items-center justify-center gap-1.5 rounded-full border border-black/10 bg-white/70 shadow-sm backdrop-blur-xl md:hidden"
       >
         <motion.span
           className="block h-0.5 w-5 rounded-full bg-black"
