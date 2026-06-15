@@ -39,7 +39,7 @@ export default function Nav() {
         initial={{ y: "-100%", opacity: 0 }}
         animate={{ y: "0%", opacity: 1 }}
         transition={{ y: { duration: 0.6, ease: [0.22, 1, 0.36, 1] }, opacity: { duration: 0.6, delay: 0.15 } }}
-        className="fixed inset-x-0 top-0 z-50"
+        className="fixed inset-x-0 top-0 z-50 hidden md:block"
       >
         <div
           className={`transition-colors duration-500 ${
@@ -68,24 +68,6 @@ export default function Nav() {
             ))}
             <Button href="/start" variant="primary" size="sm">Start a project</Button>
           </nav>
-
-          <button
-            onClick={() => setOpen((o) => !o)}
-            aria-label={open ? "Close menu" : "Open menu"}
-            aria-expanded={open}
-            className="relative z-50 flex h-10 w-10 flex-col items-center justify-center gap-1.5 md:hidden"
-          >
-            <motion.span
-              className="block h-0.5 w-6 rounded-full bg-black"
-              animate={open ? { y: 4, rotate: 45 } : { y: 0, rotate: 0 }}
-              transition={{ duration: 0.35, ease: [0.65, 0, 0.35, 1] }}
-            />
-            <motion.span
-              className="block h-0.5 w-6 rounded-full bg-black"
-              animate={open ? { y: -4, rotate: -45 } : { y: 0, rotate: 0 }}
-              transition={{ duration: 0.35, ease: [0.65, 0, 0.35, 1] }}
-            />
-          </button>
           </motion.div>
         </div>
         <motion.div
@@ -93,6 +75,29 @@ export default function Nav() {
           className="absolute bottom-0 left-0 h-px w-full origin-left bg-[var(--norvo-gradient)]"
         />
       </motion.header>
+
+      {/* Mobile: floating menu button (translucent circle, top-left). Replaces the
+          full-width navbar on small screens, so nothing has to cover the strip
+          beside the Dynamic Island — there's no bar to leak around. Sits below the
+          safe-area inset; opens the full-screen menu and morphs to an X to close. */}
+      <button
+        onClick={() => setOpen((o) => !o)}
+        aria-label={open ? "Close menu" : "Open menu"}
+        aria-expanded={open}
+        style={{ top: "calc(env(safe-area-inset-top, 0px) + 1rem)" }}
+        className="fixed left-4 z-50 flex h-11 w-11 flex-col items-center justify-center gap-1.5 rounded-full border border-black/10 bg-white/70 shadow-sm backdrop-blur-xl md:hidden"
+      >
+        <motion.span
+          className="block h-0.5 w-5 rounded-full bg-black"
+          animate={open ? { y: 4, rotate: 45 } : { y: 0, rotate: 0 }}
+          transition={{ duration: 0.35, ease: [0.65, 0, 0.35, 1] }}
+        />
+        <motion.span
+          className="block h-0.5 w-5 rounded-full bg-black"
+          animate={open ? { y: -4, rotate: -45 } : { y: 0, rotate: 0 }}
+          transition={{ duration: 0.35, ease: [0.65, 0, 0.35, 1] }}
+        />
+      </button>
 
       <AnimatePresence>
         {open && (
