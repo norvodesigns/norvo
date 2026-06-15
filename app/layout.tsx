@@ -4,6 +4,7 @@ import "./globals.css";
 import CursorTrail from "@/components/CursorTrail";
 import Nav from "@/components/Nav";
 import Footer from "@/components/Footer";
+import SafeAreaDebug from "@/components/SafeAreaDebug";
 
 const geist = Geist({ variable: "--font-geist", subsets: ["latin"] });
 const sora = Sora({ variable: "--font-sora", subsets: ["latin"], weight: ["100", "200", "300", "400", "600", "700"] });
@@ -44,6 +45,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <Nav />
         {children}
         <Footer />
+        <SafeAreaDebug />
       </body>
     </html>
   );
