@@ -3,6 +3,9 @@
 import { useRef, useMemo, useEffect } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
+import { useDeviceTilt } from "./DeviceTilt";
+
+type LookRef = React.MutableRefObject<{ x: number; y: number; gyro: boolean }>;
 
 const vertexShader = `
   varying vec2 vUv;
@@ -80,7 +83,7 @@ const fragmentShader = `
   }
 `;
 
-function FlowPlane() {
+function FlowPlane({ lookRef }: { lookRef: LookRef }) {
   const matRef = useRef<THREE.ShaderMaterial>(null);
   const { viewport, size } = useThree();
   const mouse = useRef({ x: 0, y: 0, tx: 0, ty: 0 });
@@ -106,8 +109,12 @@ function FlowPlane() {
   useFrame((state) => {
     const m = matRef.current;
     if (!m) return;
-    mouse.current.x += (mouse.current.tx - mouse.current.x) * 0.04;
-    mouse.current.y += (mouse.current.ty - mouse.current.y) * 0.04;
+    // On a phone the gyro takes over as the "cursor"; otherwise use the pointer.
+    const look = lookRef.current;
+    const tx = look.gyro ? look.x : mouse.current.tx;
+    const ty = look.gyro ? look.y : mouse.current.ty;
+    mouse.current.x += (tx - mouse.current.x) * 0.04;
+    mouse.current.y += (ty - mouse.current.y) * 0.04;
     // Write directly into the live material — guaranteed to reach the shader
     m.uniforms.uTime.value   = state.clock.getElapsedTime();
     m.uniforms.uMouse.value.set(mouse.current.x, mouse.current.y);
@@ -128,6 +135,29 @@ function FlowPlane() {
 }
 
 export default function WebGLBackdrop() {
+  const tilt = useDeviceTilt();
+  // Bridge the gyro signal (a React-side MotionValue) across the R3F renderer
+  // boundary via a plain ref the useFrame loop can read each frame.
+  const lookRef = useRef({ x: 0, y: 0, gyro: false });
+
+  useEffect(() => {
+    if (!tilt?.enabled) return;
+    const apply = () => {
+      // gamma → x (flip to feel like the cursor), beta → y
+      lookRef.current.x = -tilt.tiltX.get();
+      lookRef.current.y = -tilt.tiltY.get();
+      lookRef.current.gyro = true;
+    };
+    apply();
+    const ux = tilt.tiltX.on("change", apply);
+    const uy = tilt.tiltY.on("change", apply);
+    return () => {
+      ux();
+      uy();
+      lookRef.current.gyro = false;
+    };
+  }, [tilt]);
+
   return (
     <div className="absolute inset-0">
       <Canvas
@@ -137,7 +167,7 @@ export default function WebGLBackdrop() {
         gl={{ antialias: true }}
         style={{ width: "100%", height: "100%" }}
       >
-        <FlowPlane />
+        <FlowPlane lookRef={lookRef} />
       </Canvas>
     </div>
   );

@@ -2,7 +2,8 @@
 
 import { useRef, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { motion } from "motion/react";
+import { motion, useMotionValue, useSpring, useTransform, useReducedMotion, useInView } from "motion/react";
+import { useDeviceTilt } from "./DeviceTilt";
 
 type Props = {
   href: string;
@@ -30,6 +31,31 @@ export default function Button({
   const [hover, setHover] = useState(false);
   const router = useRouter();
 
+  // ── 3D tilt: cursor over the button on desktop, gyroscope on mobile ──
+  const reduce = useReducedMotion();
+  const tilt = useDeviceTilt();
+  const inView = useInView(ref);
+  const px = useMotionValue(0); // −0.5 … +0.5
+  const py = useMotionValue(0);
+  const tsx = useSpring(px, { stiffness: 230, damping: 18, mass: 0.5 });
+  const tsy = useSpring(py, { stiffness: 230, damping: 18, mass: 0.5 });
+  const rotateX = useTransform(tsy, (v) => -v * 22);
+  const rotateY = useTransform(tsx, (v) => v * 22);
+
+  // Only an on-screen button subscribes to the gyro — keeps offscreen buttons
+  // (e.g. the CTA at the bottom of the page) from running springs as you tilt.
+  useEffect(() => {
+    if (reduce || !tilt?.enabled || !inView) return;
+    const apply = () => {
+      px.set(tilt.tiltX.get() * 0.5);
+      py.set(tilt.tiltY.get() * 0.5);
+    };
+    apply();
+    const ux = tilt.tiltX.on("change", apply);
+    const uy = tilt.tiltY.on("change", apply);
+    return () => { ux(); uy(); px.set(0); py.set(0); };
+  }, [tilt, reduce, inView, px, py]);
+
   const setOrigin = (clientX: number, clientY: number) => {
     const el = ref.current;
     if (!el) return;
@@ -37,6 +63,15 @@ export default function Button({
     el.style.setProperty("--x", `${((clientX - r.left) / r.width) * 100}%`);
     el.style.setProperty("--y", `${((clientY - r.top) / r.height) * 100}%`);
   };
+
+  const setTilt = (clientX: number, clientY: number) => {
+    if (reduce) return;
+    const r = ref.current?.getBoundingClientRect();
+    if (!r) return;
+    px.set((clientX - r.left) / r.width - 0.5);
+    py.set((clientY - r.top) / r.height - 0.5);
+  };
+  const resetTilt = () => { px.set(0); py.set(0); };
 
   // Safety net: clear stuck hover whenever pointer moves outside
   useEffect(() => {
@@ -82,11 +117,12 @@ export default function Button({
         if (Date.now() - lastTouchRef.current < 600) return;
         setOrigin(e.clientX, e.clientY); setHover(true);
       }}
+      onPointerMove={(e) => { if (e.pointerType !== "touch") setTilt(e.clientX, e.clientY); }}
       // A touch tap "sticks" like a held desktop hover: keep the fill engaged
       // after the tap. Only a real mouse leaving — or a cancelled gesture such as
       // a scroll — turns it back off.
-      onPointerLeave={(e) => { if (e.pointerType !== "touch") setHover(false); }}
-      onPointerCancel={() => setHover(false)}
+      onPointerLeave={(e) => { if (e.pointerType !== "touch") { setHover(false); resetTilt(); } }}
+      onPointerCancel={() => { setHover(false); resetTilt(); }}
       onPointerDown={(e) => {
         if (e.pointerType === "touch") {
           lastTouchRef.current = Date.now();
@@ -101,7 +137,7 @@ export default function Button({
           ? "shadow-lg shadow-teal-600/25 hover:shadow-xl hover:shadow-teal-600/30"
           : dark ? "border border-white/[0.18]" : "border border-black/15"
       } ${className}`}
-      style={{ background: baseBg, "--x": "50%", "--y": "50%" } as React.CSSProperties}
+      style={{ background: baseBg, rotateX, rotateY, transformPerspective: 600, "--x": "50%", "--y": "50%" } as React.CSSProperties}
     >
       <span className="relative z-0 inline-flex items-center gap-2 whitespace-nowrap" style={{ color: baseColor }}>
         {children}

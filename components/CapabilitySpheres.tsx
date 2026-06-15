@@ -6,6 +6,9 @@ import { EffectComposer, Bloom, ChromaticAberration, Vignette } from "@react-thr
 import { BlendFunction } from "postprocessing";
 import { motion, AnimatePresence } from "motion/react";
 import * as THREE from "three";
+import { useDeviceTilt } from "./DeviceTilt";
+
+type LookRef = React.MutableRefObject<{ x: number; y: number }>;
 
 // Error boundary — prevents a crashed WebGL canvas from breaking the page
 class CanvasBoundary extends Component<{children:ReactNode},{err:boolean}>{
@@ -585,12 +588,13 @@ function FlowerMesh({ftype,bloomRef}:{ftype:number;bloomRef:React.MutableRefObje
 }
 
 // ─── Sphere group — purely scroll-driven, no time-based lerp ─────────────────
-function SphereGroup({cap,pos,index,scrollRef,maxBloomRef,isMobile,bloomsArr}:{
+function SphereGroup({cap,pos,index,scrollRef,maxBloomRef,isMobile,bloomsArr,lookRef}:{
   cap:typeof CAPS[0]; pos:V3; index:number;
   scrollRef:React.MutableRefObject<number>;
   maxBloomRef:React.MutableRefObject<number>;
   isMobile:boolean;
   bloomsArr:React.MutableRefObject<number[]>;
+  lookRef:LookRef;
 }){
   const bloomCur=useRef(0),hoverCur=useRef(0);
   const fadeRef=useRef(1); // 0=hidden, 1=visible — driven by other spheres' bloom
@@ -598,6 +602,7 @@ function SphereGroup({cap,pos,index,scrollRef,maxBloomRef,isMobile,bloomsArr}:{
   const flowerSpinRef=useRef<THREE.Group>(null);
   const prevScrollY=useRef(0);
   const scrollVelRef=useRef(0);
+  const tiltCur=useRef({x:0,y:0}); // smoothed tilt toward the look direction
 
   useFrame(()=>{
     const raw=scrollRef.current;
@@ -656,6 +661,15 @@ function SphereGroup({cap,pos,index,scrollRef,maxBloomRef,isMobile,bloomsArr}:{
 
     groupRef.current.position.set(gX, gY, 0);
     groupRef.current.scale.setScalar(scale);
+
+    // Tilt the whole assembly toward the look direction (cursor / phone tilt).
+    // Outer group rotation is otherwise unused — the orbit & flower spins live on
+    // inner child groups — so this is free to drive.
+    const MAXT = 0.30;
+    tiltCur.current.x += (lookRef.current.y * MAXT - tiltCur.current.x) * 0.05;
+    tiltCur.current.y += (lookRef.current.x * MAXT - tiltCur.current.y) * 0.05;
+    groupRef.current.rotation.x = tiltCur.current.x;
+    groupRef.current.rotation.y = tiltCur.current.y;
   });
 
   const fl=FLOWERS[cap.ftype];
@@ -814,13 +828,13 @@ function BackgroundPlane({scrollRef}:{scrollRef:React.MutableRefObject<number>})
   );
 }
 
-function Scene({positions,isMobile,scrollRef,maxBloomRef}:{positions:V3[];isMobile:boolean;scrollRef:React.MutableRefObject<number>;maxBloomRef:React.MutableRefObject<number>;}){
+function Scene({positions,isMobile,scrollRef,maxBloomRef,lookRef}:{positions:V3[];isMobile:boolean;scrollRef:React.MutableRefObject<number>;maxBloomRef:React.MutableRefObject<number>;lookRef:LookRef;}){
   const bloomsArr=useRef([0,0,0]);
   return(<>
     <CameraAdjust isMobile={isMobile}/>
     <BackgroundPlane scrollRef={scrollRef}/>
     {CAPS.map((c,i)=>(
-      <SphereGroup key={i} cap={c} pos={positions[i]} index={i} scrollRef={scrollRef} maxBloomRef={maxBloomRef} isMobile={isMobile} bloomsArr={bloomsArr}/>
+      <SphereGroup key={i} cap={c} pos={positions[i]} index={i} scrollRef={scrollRef} maxBloomRef={maxBloomRef} isMobile={isMobile} bloomsArr={bloomsArr} lookRef={lookRef}/>
     ))}
     {!isMobile&&<>
       <ConnectionArc from={positions[0]} to={positions[1]} color={CAPS[0].color} speed={0.13}/>
@@ -852,6 +866,27 @@ export default function CapabilitySpheres(){
   useEffect(()=>{
     setIsMobile(window.matchMedia("(pointer:coarse)").matches||window.innerWidth<768);
   },[]);
+
+  // Shared "look" direction the flowers tilt toward: cursor on desktop, gyro on
+  // mobile. A plain ref bridges the gyro MotionValue across the R3F boundary.
+  const tilt = useDeviceTilt();
+  const lookRef = useRef({x:0,y:0});
+  useEffect(()=>{
+    const onMove=(e:PointerEvent)=>{
+      lookRef.current.x=(e.clientX/window.innerWidth)*2-1;
+      lookRef.current.y=(e.clientY/window.innerHeight)*2-1;
+    };
+    window.addEventListener("pointermove",onMove,{passive:true});
+    return()=>window.removeEventListener("pointermove",onMove);
+  },[]);
+  useEffect(()=>{
+    if(!tilt?.enabled)return;
+    const apply=()=>{lookRef.current.x=tilt.tiltX.get();lookRef.current.y=tilt.tiltY.get();};
+    apply();
+    const ux=tilt.tiltX.on("change",apply);
+    const uy=tilt.tiltY.on("change",apply);
+    return()=>{ux();uy();};
+  },[tilt]);
 
   // Inject Dancing Script handwriting font
   useEffect(()=>{
@@ -1044,7 +1079,7 @@ export default function CapabilitySpheres(){
             gl={{antialias:!isMobile,alpha:false,powerPreference:"high-performance"}}
             onCreated={({gl})=>{gl.setClearColor(0xf8f7ff,1);glRef.current=gl;}}>
             <Suspense fallback={null}>
-              <Scene positions={positions} isMobile={isMobile} scrollRef={scrollRef} maxBloomRef={maxBloomRef}/>
+              <Scene positions={positions} isMobile={isMobile} scrollRef={scrollRef} maxBloomRef={maxBloomRef} lookRef={lookRef}/>
             </Suspense>
             {!isMobile && (
               <EffectComposer>

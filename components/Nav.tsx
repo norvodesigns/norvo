@@ -2,9 +2,19 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { motion, AnimatePresence, useScroll, useMotionValueEvent } from "motion/react";
+import {
+  motion,
+  AnimatePresence,
+  useScroll,
+  useMotionValueEvent,
+  useMotionValue,
+  useSpring,
+  useTransform,
+  useReducedMotion,
+} from "motion/react";
 import Logo from "./Logo";
 import Button from "./Button";
+import { useDeviceTilt } from "./DeviceTilt";
 
 const LINKS = [
   { href: "/", label: "Home" },
@@ -32,6 +42,23 @@ export default function Nav() {
     document.body.style.overflow = open ? "hidden" : "";
     return () => { document.body.style.overflow = ""; };
   }, [open]);
+
+  // Gyro-driven 3D tilt for the open mobile menu — the whole panel reads like a
+  // floating pane of glass you steer by tilting the phone.
+  const tilt = useDeviceTilt();
+  const reduceMotion = useReducedMotion();
+  const gx = useMotionValue(0);
+  const gy = useMotionValue(0);
+  const menuRotX = useSpring(useTransform(gy, [-1, 1], [12, -12]), { stiffness: 90, damping: 13 });
+  const menuRotY = useSpring(useTransform(gx, [-1, 1], [-12, 12]), { stiffness: 90, damping: 13 });
+  useEffect(() => {
+    if (reduceMotion || !open || !tilt?.enabled) return;
+    const apply = () => { gx.set(tilt.tiltX.get()); gy.set(tilt.tiltY.get()); };
+    apply();
+    const ux = tilt.tiltX.on("change", apply);
+    const uy = tilt.tiltY.on("change", apply);
+    return () => { ux(); uy(); gx.set(0); gy.set(0); };
+  }, [reduceMotion, open, tilt, gx, gy]);
 
   return (
     <>
@@ -123,14 +150,20 @@ export default function Nav() {
           >
             <motion.nav
               className="flex flex-col items-center gap-9"
+              style={{ rotateX: menuRotX, rotateY: menuRotY, transformPerspective: 1100, transformStyle: "preserve-3d" }}
               variants={{
                 hidden: {},
                 show: { transition: { staggerChildren: 0.08, delayChildren: 0.1 } },
                 exit: { transition: { staggerChildren: 0.06, staggerDirection: -1 } },
               }}
             >
-              {LINKS.map((l) => (
-                <motion.div key={l.href} variants={item}>
+              {LINKS.map((l, i) => (
+                <motion.div
+                  key={l.href}
+                  variants={item}
+                  // staggered depth → items parallax apart as the panel tilts
+                  style={{ z: (LINKS.length - i) * 18, transformStyle: "preserve-3d" }}
+                >
                   <Link
                     href={l.href}
                     onClick={() => setOpen(false)}
@@ -140,7 +173,7 @@ export default function Nav() {
                   </Link>
                 </motion.div>
               ))}
-              <motion.div className="mt-8" variants={item}>
+              <motion.div className="mt-8" variants={item} style={{ z: 96, transformStyle: "preserve-3d" }}>
                 <Button href="/start" variant="primary" withArrow onClick={() => setOpen(false)}>Start a project</Button>
               </motion.div>
             </motion.nav>

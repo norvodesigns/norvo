@@ -81,6 +81,9 @@ export function DeviceTiltProvider({ children }: { children: React.ReactNode }) 
 
   // Baseline orientation captured on the first reading == neutral position.
   const baseRef = useRef<{ beta: number; gamma: number } | null>(null);
+  // Set true once a real sensor reading arrives — used to detect whether a
+  // previously-granted permission is still live (vs. revoked / cache cleared).
+  const gotEventRef = useRef(false);
 
   // The gyro listener — React owns its lifecycle so it is always torn down on
   // unmount (e.g. client-side navigation away from the homepage) and never
@@ -92,6 +95,12 @@ export function DeviceTiltProvider({ children }: { children: React.ReactNode }) 
     const handle = (e: DeviceOrientationEvent) => {
       const { beta, gamma } = e;
       if (beta == null || gamma == null) return;
+      if (!gotEventRef.current) {
+        gotEventRef.current = true;
+        // A live reading proves the grant is active — dismiss the watchdog
+        // prompt if it appeared before this (slow) first event.
+        setPhase((p) => (p === "prompt" ? "hidden" : p));
+      }
 
       if (!baseRef.current) baseRef.current = { beta, gamma };
       const dx = gamma - baseRef.current.gamma; // left/right
@@ -115,8 +124,13 @@ export function DeviceTiltProvider({ children }: { children: React.ReactNode }) 
 
       const targetX = clamp(nx / TILT_RANGE_DEG, -1, 1);
       const targetY = clamp(ny / TILT_RANGE_DEG, -1, 1);
-      tiltX.set(lerp(tiltX.get(), targetX, SMOOTH));
-      tiltY.set(lerp(tiltY.get(), targetY, SMOOTH));
+      const nx2 = lerp(tiltX.get(), targetX, SMOOTH);
+      const ny2 = lerp(tiltY.get(), targetY, SMOOTH);
+      // Deadband: the lerp only asymptotes toward the target, so without this it
+      // would emit a tiny change every frame forever — keeping every downstream
+      // spring alive even on a perfectly still phone. Stop emitting once settled.
+      if (Math.abs(nx2 - tiltX.get()) > 1e-3) tiltX.set(nx2);
+      if (Math.abs(ny2 - tiltY.get()) > 1e-3) tiltY.set(ny2);
     };
 
     window.addEventListener("deviceorientation", handle, true);
@@ -124,23 +138,43 @@ export function DeviceTiltProvider({ children }: { children: React.ReactNode }) 
   }, [enabled, tiltX, tiltY]);
 
   // Decide whether to offer the popup. Touch device + orientation support only.
+  // The popup should appear ONLY when we don't already have a live grant — i.e.
+  // the first ever load, or after the user clears site data. On a normal reload
+  // or navigation a previously-granted permission is detected silently and the
+  // popup stays hidden.
   useEffect(() => {
     const isTouch =
       window.matchMedia?.("(pointer: coarse)").matches ?? "ontouchstart" in window;
     const hasOrientation = "DeviceOrientationEvent" in window;
     if (!isTouch || !hasOrientation) return;
 
-    const DOE = window.DeviceOrientationEvent as unknown as DeviceOrientationEventStatic;
-    const needsGesture = typeof DOE.requestPermission === "function";
-
     const saved = readPref();
-    if (saved === "off") return;
-    // Previously granted with no gesture required (Android): just start
-    // listening. iOS always needs a fresh gesture, so fall through to the prompt.
-    if (saved === "on" && !needsGesture) {
+    if (saved === "off") return; // user dismissed/denied — respect until site data clears
+
+    if (saved === "on") {
+      // Granted on a previous visit. Re-attach the listener silently and verify
+      // by actually receiving a reading; only fall back to the popup if the
+      // permission is no longer live (revoked, or data was cleared elsewhere).
+      gotEventRef.current = false;
       setEnabled(true);
-      return;
+      // Some iOS builds want requestPermission re-called even when already
+      // granted; it resolves silently in that case. Safe to attempt outside a
+      // gesture — failures are ignored and we rely on the listen-detect below.
+      const DOE = window.DeviceOrientationEvent as unknown as DeviceOrientationEventStatic;
+      if (typeof DOE.requestPermission === "function") {
+        DOE.requestPermission().catch(() => {});
+      }
+      // Non-destructive watchdog: if no reading has arrived yet, surface the
+      // popup but KEEP listening (enabled stays true). A late first event still
+      // drives tilt and auto-dismisses the popup (see handler), so a
+      // granted-but-slow sensor never flickers or gets stuck on the prompt.
+      const t = window.setTimeout(() => {
+        if (!gotEventRef.current) setPhase("prompt");
+      }, 2200);
+      return () => window.clearTimeout(t);
     }
+
+    // No saved preference → first load (or freshly cleared) → offer the popup.
     setPhase("prompt");
   }, []);
 
