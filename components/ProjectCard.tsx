@@ -23,8 +23,8 @@ export function ProjectCard({ p, index = 0, noReveal = false }: { p: Project; in
 
   const mx = useMotionValue(0);
   const my = useMotionValue(0);
-  const rx = useSpring(useTransform(my, [-0.5, 0.5], [12, -12]), { stiffness: 150, damping: 18 });
-  const ry = useSpring(useTransform(mx, [-0.5, 0.5], [-12, 12]), { stiffness: 150, damping: 18 });
+  const rx = useSpring(useTransform(my, [-0.5, 0.5], [12, -12]), { stiffness: 150, damping: 22 });
+  const ry = useSpring(useTransform(mx, [-0.5, 0.5], [-12, 12]), { stiffness: 150, damping: 22 });
 
   // Specular glare that tracks the light (opposite the tilt)
   const glareX = useTransform(mx, (v) => `${50 - v * 130}%`);

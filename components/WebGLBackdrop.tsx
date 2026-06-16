@@ -2,6 +2,7 @@
 
 import { useRef, useMemo, useEffect } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
+import { useInView } from "motion/react";
 import * as THREE from "three";
 import { useDeviceTilt } from "./DeviceTilt";
 
@@ -87,6 +88,7 @@ function FlowPlane({ lookRef }: { lookRef: LookRef }) {
   const matRef = useRef<THREE.ShaderMaterial>(null);
   const { viewport, size } = useThree();
   const mouse = useRef({ x: 0, y: 0, tx: 0, ty: 0 });
+  const timeRef = useRef(0);
 
   const uniforms = useMemo(
     () => ({
@@ -106,7 +108,7 @@ function FlowPlane({ lookRef }: { lookRef: LookRef }) {
     return () => window.removeEventListener("pointermove", onMove);
   }, []);
 
-  useFrame((state) => {
+  useFrame((_state, delta) => {
     const m = matRef.current;
     if (!m) return;
     // On a phone the gyro takes over as the "cursor"; otherwise use the pointer.
@@ -115,8 +117,11 @@ function FlowPlane({ lookRef }: { lookRef: LookRef }) {
     const ty = look.gyro ? look.y : mouse.current.ty;
     mouse.current.x += (tx - mouse.current.x) * 0.04;
     mouse.current.y += (ty - mouse.current.y) * 0.04;
+    // Accumulate CLAMPED delta rather than absolute clock time, so pausing the
+    // loop off-screen (frameloop "never") and resuming doesn't jump the flow.
+    timeRef.current += Math.min(delta, 0.05);
     // Write directly into the live material — guaranteed to reach the shader
-    m.uniforms.uTime.value   = state.clock.getElapsedTime();
+    m.uniforms.uTime.value   = timeRef.current;
     m.uniforms.uMouse.value.set(mouse.current.x, mouse.current.y);
     m.uniforms.uAspect.value = size.width / size.height;
   });
@@ -139,6 +144,10 @@ export default function WebGLBackdrop() {
   // Bridge the gyro signal (a React-side MotionValue) across the R3F renderer
   // boundary via a plain ref the useFrame loop can read each frame.
   const lookRef = useRef({ x: 0, y: 0, gyro: false });
+  // Pause this full-screen retina shader once you've scrolled past the hero —
+  // it was rendering every frame for the whole session, contending with scroll.
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const inView = useInView(wrapRef, { margin: "200px" });
 
   useEffect(() => {
     if (!tilt?.enabled) return;
@@ -159,9 +168,9 @@ export default function WebGLBackdrop() {
   }, [tilt]);
 
   return (
-    <div className="absolute inset-0">
+    <div ref={wrapRef} className="absolute inset-0">
       <Canvas
-        frameloop="always"
+        frameloop={inView ? "always" : "never"}
         camera={{ position: [0, 0, 1], fov: 50 }}
         dpr={[1, 2]}
         gl={{ antialias: true }}

@@ -4,7 +4,7 @@ import type { ReactNode, ErrorInfo } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { EffectComposer, Bloom, ChromaticAberration, Vignette } from "@react-three/postprocessing";
 import { BlendFunction } from "postprocessing";
-import { motion, AnimatePresence } from "motion/react";
+import { motion, AnimatePresence, useInView } from "motion/react";
 import * as THREE from "three";
 import { useDeviceTilt } from "./DeviceTilt";
 
@@ -410,8 +410,11 @@ function ExplosionParticles({bloomRef}:{bloomRef:React.MutableRefObject<number>}
 // ─── Center disc ──────────────────────────────────────────────────────────────
 function CenterDisc({color,bloomRef}:{color:V3;bloomRef:React.MutableRefObject<number>}){
   const matRef=useRef<THREE.MeshBasicMaterial>(null);
-  useFrame(()=>{if(matRef.current)matRef.current.opacity=THREE.MathUtils.smoothstep(bloomRef.current,0.55,0.85);});
-  return(<mesh position={[0,0,0.25]}><circleGeometry args={[0.38,32]}/><meshBasicMaterial ref={matRef} color={new THREE.Color(...color)} transparent opacity={0} depthWrite={false}/></mesh>);
+  // Wider band + hard opacity cap + softer geometry so the near-white center can
+  // never read as a solid white plate — especially over the dark purple petals,
+  // where (with bloom postprocessing disabled on mobile) it used to flash in.
+  useFrame(()=>{if(matRef.current)matRef.current.opacity=THREE.MathUtils.smoothstep(bloomRef.current,0.40,0.95)*0.5;});
+  return(<mesh position={[0,0,0.25]}><circleGeometry args={[0.42,48]}/><meshBasicMaterial ref={matRef} color={new THREE.Color(...color)} transparent opacity={0} depthWrite={false}/></mesh>);
 }
 
 // ─── Particle shapes ──────────────────────────────────────────────────────────
@@ -615,10 +618,14 @@ function SphereGroup({cap,pos,index,scrollRef,maxBloomRef,isMobile,bloomsArr,loo
     if(t<0.28)      bloom=smoothstep(0,0.28,t);
     else if(t<0.68) bloom=1;
     else            bloom=1-smoothstep(0.68,1.0,t);
-    bloomCur.current=bloom;
+    // Ease bloom instead of teleporting it. During an iOS momentum scroll
+    // scrollRef jumps in large discrete steps, so a hard assignment made bloom
+    // leap across thresholds in a single frame — snapping the center disc, petal
+    // open/close and explosion in/out (the flashes). Easing makes it glide.
+    bloomCur.current += (bloom - bloomCur.current) * 0.18;
 
     // Write our bloom into the shared array, then read the max of the other two
-    bloomsArr.current[index]=bloom;
+    bloomsArr.current[index]=bloomCur.current;
     const otherBloom=Math.max(
       bloomsArr.current[(index+1)%3],
       bloomsArr.current[(index+2)%3]
@@ -872,6 +879,12 @@ export default function CapabilitySpheres(){
   // mobile. A plain ref bridges the gyro MotionValue across the R3F boundary.
   const tilt = useDeviceTilt();
   const lookRef = useRef({x:0,y:0});
+  // Pause the WebGL render loop whenever the scene is off-screen. Two
+  // frameloop:"always" canvases (this + the Hero backdrop) rendering at retina
+  // the whole time were the dominant cause of scroll stutter. 200px margin keeps
+  // it warm just before entry so there's no cold first frame.
+  const stageRef = useRef<HTMLDivElement>(null);
+  const sceneInView = useInView(stageRef, { margin: "200px" });
   useEffect(()=>{
     // Desktop only — on touch the scrolling finger fires pointermove and would
     // yank the flowers around mid-scroll. Touch uses the gyro instead (below).
@@ -1078,9 +1091,9 @@ export default function CapabilitySpheres(){
             </div>
           </div>
         </div>
-        <div style={{flex:1,position:"relative"}}>
+        <div ref={stageRef} style={{flex:1,position:"relative"}}>
           <CanvasBoundary>
-          <Canvas frameloop="always" camera={{position:[0,0.3,7.5],fov:54}} dpr={[1, isMobile ? 1.25 : 2]}
+          <Canvas frameloop={sceneInView ? "always" : "never"} camera={{position:[0,0.3,7.5],fov:54}} dpr={[1, isMobile ? 1.25 : 2]}
             gl={{antialias:!isMobile,alpha:false,powerPreference:"high-performance"}}
             onCreated={({gl})=>{gl.setClearColor(0xf8f7ff,1);glRef.current=gl;}}>
             <Suspense fallback={null}>

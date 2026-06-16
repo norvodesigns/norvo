@@ -43,7 +43,9 @@ type Tilt3DProps = {
   style?: React.CSSProperties;
 };
 
-const SPRING = { stiffness: 150, damping: 17, mass: 0.6 };
+// Critically damped — no overshoot. When iOS resumes the sensor after a scroll,
+// the tilt should glide to position, not spring past it and wobble back.
+const SPRING = { stiffness: 150, damping: 19, mass: 0.6 };
 
 export default function Tilt3D({
   children,

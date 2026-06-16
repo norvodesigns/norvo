@@ -91,6 +91,15 @@ export function DeviceTiltProvider({ children }: { children: React.ReactNode }) 
   // whether the sensor is actually delivering, so it can re-offer the popup if
   // the grant disappears mid-session (iOS does this) — not just at first load.
   const lastEventRef = useRef(0);
+  // Latches true the first time ANY reading arrives. iOS suspends
+  // deviceorientation delivery during a momentum scroll, so once a grant has
+  // proven itself live, a reading gap is almost always just that scroll pause —
+  // NOT a lost grant. We use this (plus scroll-awareness) to avoid spamming the
+  // popup mid-scroll.
+  const everWorkedRef = useRef(false);
+  // Timestamp of the last scroll event — a reading gap that overlaps a scroll is
+  // expected (iOS paused the sensor), not evidence the grant is gone.
+  const lastScrollRef = useRef(0);
 
   // The gyro listener — React owns its lifecycle so it is always torn down on
   // unmount (e.g. client-side navigation away from the homepage) and never
@@ -103,6 +112,7 @@ export function DeviceTiltProvider({ children }: { children: React.ReactNode }) 
       const { beta, gamma } = e;
       if (beta == null || gamma == null) return;
       lastEventRef.current = Date.now();
+      everWorkedRef.current = true;
       if (!gotEventRef.current) {
         gotEventRef.current = true;
         // A live reading proves the grant is active — dismiss the popup at once
@@ -157,18 +167,31 @@ export function DeviceTiltProvider({ children }: { children: React.ReactNode }) 
     setEnabled(true);
   }, []);
 
-  // Heartbeat: continuously check whether real readings are arriving. This is
-  // what makes the popup come back when iOS quietly drops the grant mid-session
-  // (the old one-shot check only ran at load, so a sensor that died later left
-  // the gyro dead with no way to re-request). When readings flow → keep the
-  // popup hidden; when they stop → offer it (unless dismissed this session).
+  // Track scroll activity so the heartbeat can tell a real "grant lost" from the
+  // expected sensor pause iOS imposes during a momentum scroll.
+  useEffect(() => {
+    const onScroll = () => { lastScrollRef.current = Date.now(); };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  // Heartbeat: re-offer the popup ONLY when the gyro is genuinely unavailable —
+  // never as a false positive during scroll. iOS stops delivering readings
+  // during a fling, so a stale reading there is expected. We offer the popup
+  // when: (a) the sensor has never delivered a reading (denied/unsupported), or
+  // (b) it worked before but has gone truly silent for a long stretch while NOT
+  // scrolling (the grant was actually dropped). When readings resume → hide it.
   useEffect(() => {
     if (!enabled) return;
     const id = window.setInterval(() => {
-      const live = lastEventRef.current !== 0 && Date.now() - lastEventRef.current < 2500;
+      const now = Date.now();
+      const live = lastEventRef.current !== 0 && now - lastEventRef.current < 2500;
+      const recentlyScrolled = now - lastScrollRef.current < 2500;
       if (live) {
         setPhase((p) => (p === "prompt" ? "hidden" : p));
-      } else if (!isDismissed()) {
+      } else if (recentlyScrolled || isDismissed()) {
+        // expected scroll pause, or user dismissed — leave it alone
+      } else if (!everWorkedRef.current || now - lastEventRef.current > 6000) {
         setPhase((p) => (p === "hidden" ? "prompt" : p));
       }
     }, 2500);

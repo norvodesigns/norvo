@@ -40,8 +40,9 @@ export default function Button({
   const inView = useInView(ref);
   const px = useMotionValue(0); // −0.5 … +0.5
   const py = useMotionValue(0);
-  const tsx = useSpring(px, { stiffness: 230, damping: 18, mass: 0.5 });
-  const tsy = useSpring(py, { stiffness: 230, damping: 18, mass: 0.5 });
+  // Critically damped (no overshoot) so the post-scroll catch-up glides home.
+  const tsx = useSpring(px, { stiffness: 230, damping: 22, mass: 0.5 });
+  const tsy = useSpring(py, { stiffness: 230, damping: 22, mass: 0.5 });
   const rotateX = useTransform(tsy, (v) => -v * 22);
   const rotateY = useTransform(tsx, (v) => v * 22);
 

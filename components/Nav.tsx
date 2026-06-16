@@ -23,12 +23,13 @@ const LINKS = [
   { href: "/contact", label: "Contact" },
 ];
 
-// Entrance: rise up leaning left, then straighten. Exit mirrors it (lean left
-// and pull up away). Pivot from the bottom-left corner for a real "lean".
+// Entrance: rise UP leaning left, then straighten. Exit is the same motion in
+// reverse but DOWNWARD: from straight/in-place, lean left and sink down out of
+// view. Pivot from the bottom-left corner for a real "lean".
 const item = {
   hidden: { opacity: 0, y: 46, rotate: -8 },
   show: { opacity: 1, y: 0, rotate: 0, transition: { type: "spring" as const, stiffness: 140, damping: 16 } },
-  exit: { opacity: 0, y: -34, rotate: -8, transition: { duration: 0.34, ease: [0.65, 0, 0.35, 1] as const } },
+  exit: { opacity: 0, y: 46, rotate: -8, transition: { duration: 0.36, ease: [0.65, 0, 0.35, 1] as const } },
 };
 
 export default function Nav() {
@@ -161,7 +162,8 @@ export default function Nav() {
               variants={{
                 hidden: {},
                 show: { transition: { staggerChildren: 0.08, delayChildren: 0.1 } },
-                exit: { transition: { staggerChildren: 0.06, staggerDirection: -1 } },
+                // same top-to-bottom stagger order as the entrance, just quicker
+                exit: { transition: { staggerChildren: 0.06 } },
               }}
             >
               {LINKS.map((l) => (
