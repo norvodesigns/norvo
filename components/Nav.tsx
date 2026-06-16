@@ -162,8 +162,8 @@ export default function Nav() {
               variants={{
                 hidden: {},
                 show: { transition: { staggerChildren: 0.08, delayChildren: 0.1 } },
-                // same top-to-bottom stagger order as the entrance, just quicker
-                exit: { transition: { staggerChildren: 0.06 } },
+                // close from the bottom up — the Start button leaves first
+                exit: { transition: { staggerChildren: 0.06, staggerDirection: -1 } },
               }}
             >
               {LINKS.map((l) => (
