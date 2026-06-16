@@ -7,6 +7,7 @@ import WordmarkHero from "./WordmarkHero";
 import Button from "./Button";
 import { Reveal3D } from "./TextAnimations";
 import { useDeviceTilt } from "./DeviceTilt";
+import TiltHint from "./TiltHint";
 
 // WebGL must load client-side only
 const WebGLBackdrop = dynamic(() => import("./WebGLBackdrop"), { ssr: false });
@@ -93,6 +94,8 @@ export default function Hero() {
             <Button href="/start" variant="primary">Start a project</Button>
             <Button href="/projects" variant="secondary">See the work</Button>
           </div>
+
+          <TiltHint className="mt-9" />
         </motion.div>
       </motion.div>
 

@@ -7,6 +7,7 @@ import { BlendFunction } from "postprocessing";
 import { motion, AnimatePresence, useInView } from "motion/react";
 import * as THREE from "three";
 import { useDeviceTilt } from "./DeviceTilt";
+import TiltHint from "./TiltHint";
 
 type LookRef = React.MutableRefObject<{ x: number; y: number }>;
 
@@ -618,11 +619,9 @@ function SphereGroup({cap,pos,index,scrollRef,maxBloomRef,isMobile,bloomsArr,loo
     if(t<0.28)      bloom=smoothstep(0,0.28,t);
     else if(t<0.68) bloom=1;
     else            bloom=1-smoothstep(0.68,1.0,t);
-    // Ease bloom instead of teleporting it. During an iOS momentum scroll
-    // scrollRef jumps in large discrete steps, so a hard assignment made bloom
-    // leap across thresholds in a single frame — snapping the center disc, petal
-    // open/close and explosion in/out (the flashes). Easing makes it glide.
-    bloomCur.current += (bloom - bloomCur.current) * 0.18;
+    // `t` already derives from the smoothed scroll, so bloom is glitch-free
+    // without a second ease here (which would just add lag vs the position).
+    bloomCur.current = bloom;
 
     // Write our bloom into the shared array, then read the max of the other two
     bloomsArr.current[index]=bloomCur.current;
@@ -855,6 +854,11 @@ function Scene({positions,isMobile,scrollRef,maxBloomRef,lookRef}:{positions:V3[
 export default function CapabilitySpheres(){
   const sectionRef  = useRef<HTMLElement>(null);
   const scrollRef   = useRef(0);
+  // Smoothed scroll. Everything visual reads THIS, not the raw scroll. iOS
+  // batches scroll + pauses rAF during a fast fling, so the raw value lands in
+  // big jumps; lerping toward it in the always-on rAF loop makes the scene glide
+  // to the settled position instead of snapping = buttery on fast scroll.
+  const smoothScrollRef = useRef(0);
   const maxBloomRef = useRef(0);
   const[isMobile,setIsMobile]=useState(false);
   const[activeIndex,setActiveIndex]=useState<number|null>(null);
@@ -939,15 +943,8 @@ export default function CapabilitySpheres(){
       if(rect.top < window.innerHeight * 0.5 && entryStartRef.current===null){
         entryStartRef.current=performance.now();
       }
-      const SPHERE_START=0.01,SPHERE_END=0.99;
-      const sp=Math.max(0,Math.min(1,(scrollRef.current-SPHERE_START)/(SPHERE_END-SPHERE_START)));
-      const seg=1/3;
-      let next:number|null=null;
-      for(let i=0;i<3;i++){
-        const t=(sp-i*seg)/seg;
-        if(t>0&&t<1){next=i;break;}
-      }
-      setActiveIndex(a=>a===next?a:next);
+      // activeIndex is derived from the SMOOTHED scroll in the rAF tick so the
+      // card content stays in sync with the (smoothed) sphere animation.
     };
     window.addEventListener("scroll",onScroll,{passive:true});
     onScroll();
@@ -957,15 +954,21 @@ export default function CapabilitySpheres(){
   useEffect(()=>{
     let raf=0;
     const tick=()=>{
-      const p=scrollRef.current;
+      // Lerp the smoothed scroll toward the raw scroll every frame (always-on
+      // rAF). The WebGL scene reads the same smoothed value, so DOM + 3D glide
+      // together after a fast fling rather than snapping.
+      smoothScrollRef.current += (scrollRef.current - smoothScrollRef.current) * 0.18;
+      const p=smoothScrollRef.current;
       const SPHERE_START=0.01,SPHERE_END=0.99;
       const sp=Math.max(0,Math.min(1,(p-SPHERE_START)/(SPHERE_END-SPHERE_START)));
       const seg=1/3;
       let t=0;
+      let next:number|null=null;
       for(let i=0;i<3;i++){
         const ti=(sp-i*seg)/seg;
-        if(ti>0&&ti<1){t=ti;break;}
+        if(ti>0&&ti<1){t=ti;next=i;break;}
       }
+      setActiveIndex(a=>a===next?a:next);
 
       // ── Headline ────────────────────────────────────────────────────────────
       const entryRaw = entryStartRef.current ? Math.min(1,(performance.now()-entryStartRef.current)/1300) : 0;
@@ -1097,7 +1100,7 @@ export default function CapabilitySpheres(){
             gl={{antialias:!isMobile,alpha:false,powerPreference:"high-performance"}}
             onCreated={({gl})=>{gl.setClearColor(0xf8f7ff,1);glRef.current=gl;}}>
             <Suspense fallback={null}>
-              <Scene positions={positions} isMobile={isMobile} scrollRef={scrollRef} maxBloomRef={maxBloomRef} lookRef={lookRef}/>
+              <Scene positions={positions} isMobile={isMobile} scrollRef={smoothScrollRef} maxBloomRef={maxBloomRef} lookRef={lookRef}/>
             </Suspense>
             {!isMobile && (
               <EffectComposer>
@@ -1187,6 +1190,12 @@ export default function CapabilitySpheres(){
                 </div>
               </div>
             )}
+          </div>
+
+          {/* tilt nudge — only on mobile once the gyro has been enabled */}
+          <div className="pointer-events-none absolute left-0 right-0 flex justify-center"
+               style={{ bottom: isMobile ? "7%" : "11%", zIndex: 6 }}>
+            <TiltHint />
           </div>
 
         </div>
