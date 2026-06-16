@@ -38,6 +38,8 @@ type Tilt3DProps = {
   perspective?: number;
   /** how much the gyro contributes (1 = same as a full cursor sweep) */
   gyroStrength?: number;
+  /** drive the tilt from the gyroscope on mobile (default true) */
+  gyro?: boolean;
   style?: React.CSSProperties;
 };
 
@@ -53,6 +55,7 @@ export default function Tilt3D({
   glareOpacity = 0.22,
   perspective = 900,
   gyroStrength = 1,
+  gyro = true,
   style,
 }: Tilt3DProps) {
   const ref = useRef<HTMLDivElement>(null);
@@ -91,7 +94,7 @@ export default function Tilt3D({
   // Mobile: drive tilt from the gyroscope (−1…+1 → −0.5…+0.5 to match cursor).
   // Gated on visibility so only on-screen wrappers run springs as you tilt.
   useEffect(() => {
-    if (reduce || !tilt?.enabled || !inView) return;
+    if (!gyro || reduce || !tilt?.enabled || !inView) return;
     const apply = () => {
       px.set(tilt.tiltX.get() * 0.5 * gyroStrength);
       py.set(tilt.tiltY.get() * 0.5 * gyroStrength);
@@ -105,7 +108,7 @@ export default function Tilt3D({
       px.set(0);
       py.set(0);
     };
-  }, [tilt, reduce, inView, px, py, gyroStrength]);
+  }, [tilt, reduce, inView, gyro, px, py, gyroStrength]);
 
   if (reduce) {
     return (

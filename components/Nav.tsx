@@ -49,8 +49,10 @@ export default function Nav() {
   const reduceMotion = useReducedMotion();
   const gx = useMotionValue(0);
   const gy = useMotionValue(0);
-  const menuRotX = useSpring(useTransform(gy, [-1, 1], [18, -18]), { stiffness: 90, damping: 13 });
-  const menuRotY = useSpring(useTransform(gx, [-1, 1], [-10, 10]), { stiffness: 90, damping: 13 });
+  // Balanced axes + snappy springs → tilts cleanly toward where you point the
+  // phone instead of lagging/overshooting toward a corner.
+  const menuRotX = useSpring(useTransform(gy, [-1, 1], [15, -15]), { stiffness: 150, damping: 20 });
+  const menuRotY = useSpring(useTransform(gx, [-1, 1], [-15, 15]), { stiffness: 150, damping: 20 });
   useEffect(() => {
     if (reduceMotion || !open || !tilt?.enabled) return;
     const apply = () => { gx.set(tilt.tiltX.get()); gy.set(tilt.tiltY.get()); };
@@ -150,7 +152,10 @@ export default function Nav() {
           >
             <motion.nav
               className="flex flex-col items-center gap-9"
-              style={{ rotateX: menuRotX, rotateY: menuRotY, transformPerspective: 1100, transformStyle: "preserve-3d" }}
+              // NOTE: no preserve-3d here — it was rendering the staggered items
+              // in 3D space and breaking the fade/stagger. A flat plane that tilts
+              // is what we want. Lower perspective = a more pronounced 3D tip.
+              style={{ rotateX: menuRotX, rotateY: menuRotY, transformPerspective: 800 }}
               variants={{
                 hidden: {},
                 show: { transition: { staggerChildren: 0.08, delayChildren: 0.1 } },

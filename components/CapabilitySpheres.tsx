@@ -663,17 +663,12 @@ function SphereGroup({cap,pos,index,scrollRef,maxBloomRef,isMobile,bloomsArr,loo
     groupRef.current.scale.setScalar(scale);
 
     // Tilt the whole assembly toward the look direction (cursor / phone tilt).
-    // Outer group rotation is otherwise unused — the orbit & flower spins live on
-    // inner child groups — so this is free to drive. CRUCIAL for mobile: only
-    // update the tilt while the scroll is settled (normVel < ~0.12). During an
-    // active scroll your hand naturally tilts the phone, and letting that wobble
-    // the flowers fights the scroll and reads as stutter — so we freeze the tilt
-    // mid-scroll (pure, buttery scroll) and let it ease back in once you stop.
-    if (normVel < 0.12) {
-      const MAXT = 0.30;
-      tiltCur.current.x += (lookRef.current.y * MAXT - tiltCur.current.x) * 0.06;
-      tiltCur.current.y += (lookRef.current.x * MAXT - tiltCur.current.y) * 0.06;
-    }
+    // Runs continuously — including during scroll — so the flowers tilt and
+    // scroll together. It's cheap: this lerp lives inside the WebGL frame loop
+    // that already runs every frame, so it adds no scroll-time DOM work.
+    const MAXT = 0.30;
+    tiltCur.current.x += (lookRef.current.y * MAXT - tiltCur.current.x) * 0.06;
+    tiltCur.current.y += (lookRef.current.x * MAXT - tiltCur.current.y) * 0.06;
     groupRef.current.rotation.x = tiltCur.current.x;
     groupRef.current.rotation.y = tiltCur.current.y;
   });
@@ -1180,44 +1175,6 @@ export default function CapabilitySpheres(){
               </div>
             )}
           </div>
-
-          {/* Progress dots */}
-          <div className="pointer-events-none absolute left-0 right-0 flex justify-center"
-               style={{bottom: isMobile ? "8%" : "12%", zIndex:6, gap:12, display:"flex"}}>
-            {CAPS.map((cap,i)=>{
-              const seg=1/3,SPHERE_START=0.01,SPHERE_END=0.99;
-              const sp=Math.max(0,Math.min(1,(scrollRef.current-SPHERE_START)/(SPHERE_END-SPHERE_START)));
-              const t=(sp-i*seg)/seg;
-              const active=t>0.1&&t<0.9;
-              
-              // Smooth color interpolation based on scroll progress through this sphere's range
-              const colorT = Math.max(0, Math.min(1, (t - 0.0) / 1.0)); // 0-1 over the sphere's entire range
-              const hex = cap.hex;
-              const r = parseInt(hex.slice(1,3), 16) / 255;
-              const g = parseInt(hex.slice(3,5), 16) / 255;
-              const b = parseInt(hex.slice(5,7), 16) / 255;
-              const bgColor = `rgba(${Math.round(80 + (r*255 - 80)*colorT)}, ${Math.round(60 + (g*255 - 60)*colorT)}, ${Math.round(160 + (b*255 - 160)*colorT)}, ${0.30 + colorT*0.70})`;
-              
-              return(
-                <motion.div key={i}
-                  animate={{opacity:active?1:0.28,scale:active?1.5:1}}
-                  transition={{duration:0.35}}
-                  style={{width: isMobile?8:7, height: isMobile?8:7,borderRadius:"50%",backgroundColor:bgColor}}
-                />
-              );
-            })}
-          </div>
-
-          {/* Scroll / tap nudge */}
-          <motion.div className="pointer-events-none absolute left-1/2 -translate-x-1/2 flex flex-col items-center gap-1"
-            style={{bottom: isMobile ? "13%" : "18%", zIndex:6}}
-            animate={{opacity:[0.3,0.65,0.3]}} transition={{duration:2.5,repeat:Infinity,ease:"easeInOut"}}>
-            <p style={{fontSize:"9px",letterSpacing:"0.38em",textTransform:"uppercase",color:"rgba(80,60,160,0.45)",fontFamily:"var(--font-sora)",fontWeight:300}}>
-              {isMobile ? "tap a sphere" : "scroll to explore"}
-            </p>
-            <motion.div animate={{y:[0,4,0]}} transition={{duration:1.6,repeat:Infinity,ease:"easeInOut"}}
-              style={{width:1,height:14,background:"linear-gradient(to bottom,rgba(80,60,180,0.40),transparent)"}}/>
-          </motion.div>
 
         </div>
       </div>

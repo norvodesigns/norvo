@@ -36,8 +36,11 @@ export default function Process() {
 
         <div className="grid gap-px bg-black/[0.06] rounded-3xl overflow-hidden sm:grid-cols-3">
           {STEPS.map((step) => (
-            // seamless grid tiles → no scale/lift so neighbours don't overlap
-            <Tilt3D key={step.num} className="h-full" max={9} scale={1} lift={0} perspective={700}>
+            // seamless grid tiles → no scale/lift so neighbours don't overlap.
+            // gyro off: these cards carry scroll-linked reveal animations, and a
+            // gyro tilt running on top of them during scroll starves the reveal
+            // (text lags then jumps). Desktop hover-tilt stays on.
+            <Tilt3D key={step.num} className="h-full" max={9} scale={1} lift={0} perspective={700} gyro={false}>
               <div className="bg-white p-10 md:p-12 h-full">
                 <ScrollReveal3D>
                   <span
