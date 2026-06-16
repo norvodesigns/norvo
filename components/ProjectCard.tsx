@@ -69,9 +69,11 @@ export function ProjectCard({ p, index = 0, noReveal = false }: { p: Project; in
       <a {...linkProps} ref={ref} onMouseMove={onMove} onMouseLeave={onLeave} className="group block">
         {/* outer div handles aspect ratio, rounding, and clipping — no 3D transform so overflow-hidden works */}
         <div className="relative aspect-[4/3] overflow-hidden rounded-3xl shadow-sm transition-shadow duration-500 group-hover:shadow-2xl group-hover:shadow-teal-900/20">
-          {/* inner motion div handles the tilt only */}
+          {/* inner motion div handles the tilt only — no preserve-3d: the card
+              tilts as a flat plane, and preserve-3d forced an expensive 3D
+              compositing context that stuttered during scroll. */}
           <motion.div
-            style={{ rotateX: rx, rotateY: ry, transformPerspective: 900, transformStyle: "preserve-3d" }}
+            style={{ rotateX: rx, rotateY: ry, transformPerspective: 900 }}
             className="absolute inset-0"
           >
           <div

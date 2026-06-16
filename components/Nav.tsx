@@ -23,10 +23,12 @@ const LINKS = [
   { href: "/contact", label: "Contact" },
 ];
 
+// Entrance: rise up leaning left, then straighten. Exit mirrors it (lean left
+// and pull up away). Pivot from the bottom-left corner for a real "lean".
 const item = {
-  hidden: { opacity: 0, y: 28 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.42, ease: [0.22, 1, 0.36, 1] as const } },
-  exit: { opacity: 0, y: 16, transition: { duration: 0.22, ease: [0.65, 0, 0.35, 1] as const } },
+  hidden: { opacity: 0, y: 46, rotate: -8 },
+  show: { opacity: 1, y: 0, rotate: 0, transition: { type: "spring" as const, stiffness: 140, damping: 16 } },
+  exit: { opacity: 0, y: -34, rotate: -8, transition: { duration: 0.34, ease: [0.65, 0, 0.35, 1] as const } },
 };
 
 export default function Nav() {
@@ -163,7 +165,7 @@ export default function Nav() {
               }}
             >
               {LINKS.map((l) => (
-                <motion.div key={l.href} variants={item}>
+                <motion.div key={l.href} variants={item} style={{ transformOrigin: "0% 100%" }}>
                   <Link
                     href={l.href}
                     onClick={() => setOpen(false)}
@@ -175,7 +177,7 @@ export default function Nav() {
               ))}
               {/* noTilt: the panel already tilts as one plane — its own tilt would
                   double up and make it move out of sync with the links */}
-              <motion.div className="mt-8" variants={item}>
+              <motion.div className="mt-8" variants={item} style={{ transformOrigin: "0% 100%" }}>
                 <Button href="/start" variant="primary" withArrow noTilt onClick={() => setOpen(false)}>Start a project</Button>
               </motion.div>
             </motion.nav>

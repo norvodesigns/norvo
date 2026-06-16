@@ -54,18 +54,21 @@ const TILT_RANGE_DEG = 16;
 // Light low-pass on raw sensor data; the per-section springs do the rest.
 const SMOOTH = 0.2;
 
-const STORAGE_KEY = "norvo:tilt";
-
-const readPref = (): string | null => {
+// Dismissal is scoped to the tab session (NOT localStorage) so that a reload
+// re-offers the popup whenever the gyro genuinely isn't working — e.g. iOS
+// dropped the grant — instead of permanently silencing it.
+const DISMISS_KEY = "norvo:tilt:dismissed";
+const isDismissed = (): boolean => {
   try {
-    return window.localStorage.getItem(STORAGE_KEY);
+    return window.sessionStorage.getItem(DISMISS_KEY) === "1";
   } catch {
-    return null;
+    return false;
   }
 };
-const writePref = (v: "on" | "off") => {
+const setDismissed = (v: boolean) => {
   try {
-    window.localStorage.setItem(STORAGE_KEY, v);
+    if (v) window.sessionStorage.setItem(DISMISS_KEY, "1");
+    else window.sessionStorage.removeItem(DISMISS_KEY);
   } catch {
     /* storage blocked — ignore */
   }
@@ -81,9 +84,13 @@ export function DeviceTiltProvider({ children }: { children: React.ReactNode }) 
 
   // Baseline orientation captured on the first reading == neutral position.
   const baseRef = useRef<{ beta: number; gamma: number } | null>(null);
-  // Set true once a real sensor reading arrives — used to detect whether a
-  // previously-granted permission is still live (vs. revoked / cache cleared).
+  // Set true once a real sensor reading arrives — used for the quick first
+  // dismiss of the popup.
   const gotEventRef = useRef(false);
+  // Timestamp (ms) of the last real reading. The heartbeat watches this to tell
+  // whether the sensor is actually delivering, so it can re-offer the popup if
+  // the grant disappears mid-session (iOS does this) — not just at first load.
+  const lastEventRef = useRef(0);
 
   // The gyro listener — React owns its lifecycle so it is always torn down on
   // unmount (e.g. client-side navigation away from the homepage) and never
@@ -95,10 +102,11 @@ export function DeviceTiltProvider({ children }: { children: React.ReactNode }) 
     const handle = (e: DeviceOrientationEvent) => {
       const { beta, gamma } = e;
       if (beta == null || gamma == null) return;
+      lastEventRef.current = Date.now();
       if (!gotEventRef.current) {
         gotEventRef.current = true;
-        // A live reading proves the grant is active — dismiss the watchdog
-        // prompt if it appeared before this (slow) first event.
+        // A live reading proves the grant is active — dismiss the popup at once
+        // if it appeared before this (slow) first event.
         setPhase((p) => (p === "prompt" ? "hidden" : p));
       }
 
@@ -137,46 +145,35 @@ export function DeviceTiltProvider({ children }: { children: React.ReactNode }) 
     return () => window.removeEventListener("deviceorientation", handle, true);
   }, [enabled, tiltX, tiltY]);
 
-  // Decide whether to offer the popup. Touch device + orientation support only.
-  // The popup should appear ONLY when we don't already have a live grant — i.e.
-  // the first ever load, or after the user clears site data. On a normal reload
-  // or navigation a previously-granted permission is detected silently and the
-  // popup stays hidden.
+  // On a touch device with orientation support, start listening immediately so
+  // we can tell whether the sensor is actually delivering readings. If a grant
+  // already exists (Android, or iOS within a live grant) events flow with no
+  // gesture; otherwise none arrive and the heartbeat below offers the popup.
   useEffect(() => {
     const isTouch =
       window.matchMedia?.("(pointer: coarse)").matches ?? "ontouchstart" in window;
     const hasOrientation = "DeviceOrientationEvent" in window;
     if (!isTouch || !hasOrientation) return;
-
-    const saved = readPref();
-    if (saved === "off") return; // user dismissed/denied — respect until site data clears
-
-    if (saved === "on") {
-      // Granted on a previous visit. Re-attach the listener silently and verify
-      // by actually receiving a reading; only fall back to the popup if the
-      // permission is no longer live (revoked, or data was cleared elsewhere).
-      gotEventRef.current = false;
-      setEnabled(true);
-      // Some iOS builds want requestPermission re-called even when already
-      // granted; it resolves silently in that case. Safe to attempt outside a
-      // gesture — failures are ignored and we rely on the listen-detect below.
-      const DOE = window.DeviceOrientationEvent as unknown as DeviceOrientationEventStatic;
-      if (typeof DOE.requestPermission === "function") {
-        DOE.requestPermission().catch(() => {});
-      }
-      // Non-destructive watchdog: if no reading has arrived yet, surface the
-      // popup but KEEP listening (enabled stays true). A late first event still
-      // drives tilt and auto-dismisses the popup (see handler), so a
-      // granted-but-slow sensor never flickers or gets stuck on the prompt.
-      const t = window.setTimeout(() => {
-        if (!gotEventRef.current) setPhase("prompt");
-      }, 2200);
-      return () => window.clearTimeout(t);
-    }
-
-    // No saved preference → first load (or freshly cleared) → offer the popup.
-    setPhase("prompt");
+    setEnabled(true);
   }, []);
+
+  // Heartbeat: continuously check whether real readings are arriving. This is
+  // what makes the popup come back when iOS quietly drops the grant mid-session
+  // (the old one-shot check only ran at load, so a sensor that died later left
+  // the gyro dead with no way to re-request). When readings flow → keep the
+  // popup hidden; when they stop → offer it (unless dismissed this session).
+  useEffect(() => {
+    if (!enabled) return;
+    const id = window.setInterval(() => {
+      const live = lastEventRef.current !== 0 && Date.now() - lastEventRef.current < 2500;
+      if (live) {
+        setPhase((p) => (p === "prompt" ? "hidden" : p));
+      } else if (!isDismissed()) {
+        setPhase((p) => (p === "hidden" ? "prompt" : p));
+      }
+    }, 2500);
+    return () => window.clearInterval(id);
+  }, [enabled]);
 
   const enable = async () => {
     try {
@@ -185,21 +182,22 @@ export function DeviceTiltProvider({ children }: { children: React.ReactNode }) 
         // Called synchronously from the button gesture — required by iOS.
         const res = await DOE.requestPermission();
         if (res !== "granted") {
-          writePref("off");
+          setDismissed(true); // denied — don't keep nagging this session
           setPhase("hidden");
           return;
         }
       }
-      writePref("on");
+      setDismissed(false);
       setPhase("hidden");
       setEnabled(true);
+      gotEventRef.current = false; // re-baseline the quick-dismiss for the new grant
     } catch {
       setPhase("hidden");
     }
   };
 
   const dismiss = () => {
-    writePref("off");
+    setDismissed(true);
     setPhase("hidden");
   };
 
