@@ -54,26 +54,6 @@ const TILT_RANGE_DEG = 16;
 // Light low-pass on raw sensor data; the per-section springs do the rest.
 const SMOOTH = 0.2;
 
-// Dismissal is scoped to the tab session (NOT localStorage) so that a reload
-// re-offers the popup whenever the gyro genuinely isn't working — e.g. iOS
-// dropped the grant — instead of permanently silencing it.
-const DISMISS_KEY = "norvo:tilt:dismissed";
-const isDismissed = (): boolean => {
-  try {
-    return window.sessionStorage.getItem(DISMISS_KEY) === "1";
-  } catch {
-    return false;
-  }
-};
-const setDismissed = (v: boolean) => {
-  try {
-    if (v) window.sessionStorage.setItem(DISMISS_KEY, "1");
-    else window.sessionStorage.removeItem(DISMISS_KEY);
-  } catch {
-    /* storage blocked — ignore */
-  }
-};
-
 export function DeviceTiltProvider({ children }: { children: React.ReactNode }) {
   const tiltX = useMotionValue(0);
   const tiltY = useMotionValue(0);
@@ -84,22 +64,6 @@ export function DeviceTiltProvider({ children }: { children: React.ReactNode }) 
 
   // Baseline orientation captured on the first reading == neutral position.
   const baseRef = useRef<{ beta: number; gamma: number } | null>(null);
-  // Set true once a real sensor reading arrives — used for the quick first
-  // dismiss of the popup.
-  const gotEventRef = useRef(false);
-  // Timestamp (ms) of the last real reading. The heartbeat watches this to tell
-  // whether the sensor is actually delivering, so it can re-offer the popup if
-  // the grant disappears mid-session (iOS does this) — not just at first load.
-  const lastEventRef = useRef(0);
-  // Latches true the first time ANY reading arrives. iOS suspends
-  // deviceorientation delivery during a momentum scroll, so once a grant has
-  // proven itself live, a reading gap is almost always just that scroll pause —
-  // NOT a lost grant. We use this (plus scroll-awareness) to avoid spamming the
-  // popup mid-scroll.
-  const everWorkedRef = useRef(false);
-  // Timestamp of the last scroll event — a reading gap that overlaps a scroll is
-  // expected (iOS paused the sensor), not evidence the grant is gone.
-  const lastScrollRef = useRef(0);
 
   // The gyro listener — React owns its lifecycle so it is always torn down on
   // unmount (e.g. client-side navigation away from the homepage) and never
@@ -111,14 +75,6 @@ export function DeviceTiltProvider({ children }: { children: React.ReactNode }) 
     const handle = (e: DeviceOrientationEvent) => {
       const { beta, gamma } = e;
       if (beta == null || gamma == null) return;
-      lastEventRef.current = Date.now();
-      everWorkedRef.current = true;
-      if (!gotEventRef.current) {
-        gotEventRef.current = true;
-        // A live reading proves the grant is active — dismiss the popup at once
-        // if it appeared before this (slow) first event.
-        setPhase((p) => (p === "prompt" ? "hidden" : p));
-      }
 
       if (!baseRef.current) baseRef.current = { beta, gamma };
       const dx = gamma - baseRef.current.gamma; // left/right
@@ -155,48 +111,17 @@ export function DeviceTiltProvider({ children }: { children: React.ReactNode }) 
     return () => window.removeEventListener("deviceorientation", handle, true);
   }, [enabled, tiltX, tiltY]);
 
-  // On a touch device with orientation support, start listening immediately so
-  // we can tell whether the sensor is actually delivering readings. If a grant
-  // already exists (Android, or iOS within a live grant) events flow with no
-  // gesture; otherwise none arrive and the heartbeat below offers the popup.
+  // Tilt is OFF by default on every load. We deliberately do NOT try to detect an
+  // existing OS-level grant (that was unreliable and caused the popup to misfire).
+  // Instead the popup is simply offered on every visit, and the gyro turns on
+  // only when the user taps Enable — which also satisfies iOS's requirement that
+  // requestPermission() be called from a user gesture.
   useEffect(() => {
     const isTouch =
       window.matchMedia?.("(pointer: coarse)").matches ?? "ontouchstart" in window;
     const hasOrientation = "DeviceOrientationEvent" in window;
-    if (!isTouch || !hasOrientation) return;
-    setEnabled(true);
+    if (isTouch && hasOrientation) setPhase("prompt");
   }, []);
-
-  // Track scroll activity so the heartbeat can tell a real "grant lost" from the
-  // expected sensor pause iOS imposes during a momentum scroll.
-  useEffect(() => {
-    const onScroll = () => { lastScrollRef.current = Date.now(); };
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
-
-  // Heartbeat: re-offer the popup ONLY when the gyro is genuinely unavailable —
-  // never as a false positive during scroll. iOS stops delivering readings
-  // during a fling, so a stale reading there is expected. We offer the popup
-  // when: (a) the sensor has never delivered a reading (denied/unsupported), or
-  // (b) it worked before but has gone truly silent for a long stretch while NOT
-  // scrolling (the grant was actually dropped). When readings resume → hide it.
-  useEffect(() => {
-    if (!enabled) return;
-    const id = window.setInterval(() => {
-      const now = Date.now();
-      const live = lastEventRef.current !== 0 && now - lastEventRef.current < 2500;
-      const recentlyScrolled = now - lastScrollRef.current < 2500;
-      if (live) {
-        setPhase((p) => (p === "prompt" ? "hidden" : p));
-      } else if (recentlyScrolled || isDismissed()) {
-        // expected scroll pause, or user dismissed — leave it alone
-      } else if (!everWorkedRef.current || now - lastEventRef.current > 6000) {
-        setPhase((p) => (p === "hidden" ? "prompt" : p));
-      }
-    }, 2500);
-    return () => window.clearInterval(id);
-  }, [enabled]);
 
   const enable = async () => {
     try {
@@ -205,24 +130,18 @@ export function DeviceTiltProvider({ children }: { children: React.ReactNode }) 
         // Called synchronously from the button gesture — required by iOS.
         const res = await DOE.requestPermission();
         if (res !== "granted") {
-          setDismissed(true); // denied — don't keep nagging this session
           setPhase("hidden");
           return;
         }
       }
-      setDismissed(false);
       setPhase("hidden");
       setEnabled(true);
-      gotEventRef.current = false; // re-baseline the quick-dismiss for the new grant
     } catch {
       setPhase("hidden");
     }
   };
 
-  const dismiss = () => {
-    setDismissed(true);
-    setPhase("hidden");
-  };
+  const dismiss = () => setPhase("hidden");
 
   const value = useMemo<TiltContextValue>(
     () => ({ tiltX, tiltY, enabled, promptVisible: phase === "prompt" }),

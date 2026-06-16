@@ -1,6 +1,5 @@
 "use client";
-import { useRef } from "react";
-import { motion, useScroll, useTransform } from "motion/react";
+import { motion } from "motion/react";
 
 interface Props {
   children: React.ReactNode;
@@ -15,27 +14,29 @@ export default function ScrollReveal3D({
   axis = "x",
   direction = 0,
 }: Props) {
-  const ref = useRef<HTMLDivElement>(null);
-
-  const { scrollYProgress } = useScroll({
-    target: ref,
-    offset: ["start 0.95", "start 0.1"],
-  });
-
-  // No spring — direct mapping is smooth without glitch/overshoot
-  const rotateX = useTransform(scrollYProgress, [0, 1], [22, 0]);
-  const rotateY = useTransform(scrollYProgress, [0, 1], [direction === 0 ? -20 : 20, 0]);
-  const y       = useTransform(scrollYProgress, [0, 1], [60, 0]);
-  const opacity = useTransform(scrollYProgress, [0, 0.45], [0, 1]);
-  const scale   = useTransform(scrollYProgress, [0, 1], [0.9, 1]);
-
-  const style = axis === "y"
-    ? { rotateY, opacity, scale }
-    : { rotateX, y, opacity, scale };
+  // One-time reveal as the element enters view. Deliberately NOT scroll-linked:
+  // a scroll-linked transform reverses (un-reveals) when you scroll back up, and
+  // on iOS that backward scrub is batched/choppy and reads as a glitch. once:true
+  // plays the reveal a single time and leaves it put.
+  const hidden =
+    axis === "y"
+      ? { opacity: 0, rotateY: direction === 0 ? -20 : 20, scale: 0.9 }
+      : { opacity: 0, rotateX: 22, y: 60, scale: 0.9 };
+  const shown =
+    axis === "y"
+      ? { opacity: 1, rotateY: 0, scale: 1 }
+      : { opacity: 1, rotateX: 0, y: 0, scale: 1 };
 
   return (
-    <div ref={ref} style={{ perspective: "800px" }} className={className}>
-      <motion.div style={style}>{children}</motion.div>
+    <div style={{ perspective: "800px" }} className={className}>
+      <motion.div
+        initial={hidden}
+        whileInView={shown}
+        viewport={{ once: true, margin: "-60px" }}
+        transition={{ duration: 0.85, ease: [0.22, 1, 0.36, 1] }}
+      >
+        {children}
+      </motion.div>
     </div>
   );
 }
