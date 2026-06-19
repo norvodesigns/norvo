@@ -1,6 +1,6 @@
 "use server";
 
-import { Resend } from "resend";
+import nodemailer from "nodemailer";
 
 export type ContactResult = { ok: boolean; error?: string; code?: "NO_EMAIL_CONFIGURED" };
 
@@ -32,29 +32,27 @@ export async function submitContact(formData: FormData): Promise<ContactResult> 
   if (!EMAIL_RE.test(email)) return { ok: false, error: "Please enter a valid email address." };
   if (!message) return { ok: false, error: "Please add a short message." };
 
-  const subject = `New message from ${name} — Norvo`;
-  const html = renderHtml(name, email, message);
-
-  const apiKey = process.env.RESEND_API_KEY;
-  if (!apiKey) {
-    // No provider wired yet — don't lose the lead; the client shows a mailto fallback.
-    console.warn("[submitContact] RESEND_API_KEY not set — message not emailed.", { name, email });
+  const user = process.env.GMAIL_USER;
+  const pass = process.env.GMAIL_APP_PASSWORD;
+  if (!user || !pass) {
+    console.warn("[submitContact] GMAIL_USER or GMAIL_APP_PASSWORD not set.", { name, email });
     return { ok: false, code: "NO_EMAIL_CONFIGURED", error: "Email isn't configured yet." };
   }
 
   try {
-    const resend = new Resend(apiKey);
-    const { error } = await resend.emails.send({
-      from: process.env.BRIEF_FROM_EMAIL || "onboarding@resend.dev",
-      to: process.env.BRIEF_TO_EMAIL || "norvodesigns@gmail.com",
-      replyTo: email,
-      subject,
-      html,
+    const transporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: { user, pass },
     });
-    if (error) {
-      console.error("[submitContact] Resend error:", error);
-      return { ok: false, error: "We couldn't send your message just now. Please email us directly." };
-    }
+
+    await transporter.sendMail({
+      from: `"Norvo" <${user}>`,
+      to: process.env.BRIEF_TO_EMAIL || user,
+      replyTo: email,
+      subject: `New message from ${name} — Norvo`,
+      html: renderHtml(name, email, message),
+    });
+
     return { ok: true };
   } catch (e) {
     console.error("[submitContact] send threw:", e);

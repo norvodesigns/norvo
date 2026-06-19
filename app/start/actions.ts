@@ -1,6 +1,6 @@
 "use server";
 
-import { Resend } from "resend";
+import nodemailer from "nodemailer";
 import type { Answers } from "@/components/intake/types";
 
 export type SubmitResult = { ok: boolean; error?: string; code?: "NO_EMAIL_CONFIGURED" };
@@ -78,7 +78,6 @@ export async function submitBrief(formData: FormData): Promise<SubmitResult> {
   if (!name) return { ok: false, error: "Please add your name so we know who to reply to." };
   if (!EMAIL_RE.test(email)) return { ok: false, error: "Please enter a valid email address." };
 
-  // Collect file attachments (skip empties), enforce a total size cap.
   const files = formData
     .getAll("files")
     .filter((f): f is File => f instanceof File && f.size > 0);
@@ -96,14 +95,11 @@ export async function submitBrief(formData: FormData): Promise<SubmitResult> {
     attachments.push({ filename: f.name, content: Buffer.from(await f.arrayBuffer()) });
   }
 
-  const subject = `New project brief — ${name}${a.company ? ` (${a.company})` : ""}`;
-  const html = renderBriefHtml(a, files.map((f) => f.name));
-
-  const apiKey = process.env.RESEND_API_KEY;
-  if (!apiKey) {
-    // No provider wired yet — don't lose the lead; the client shows a mailto fallback.
-    console.warn("[submitBrief] RESEND_API_KEY not set — brief not emailed.", {
-      subject,
+  const user = process.env.GMAIL_USER;
+  const pass = process.env.GMAIL_APP_PASSWORD;
+  if (!user || !pass) {
+    console.warn("[submitBrief] GMAIL_USER or GMAIL_APP_PASSWORD not set.", {
+      subject: `New project brief — ${name}`,
       answers: a,
       files: files.map((f) => f.name),
     });
@@ -111,19 +107,20 @@ export async function submitBrief(formData: FormData): Promise<SubmitResult> {
   }
 
   try {
-    const resend = new Resend(apiKey);
-    const { error } = await resend.emails.send({
-      from: process.env.BRIEF_FROM_EMAIL || "onboarding@resend.dev",
-      to: process.env.BRIEF_TO_EMAIL || "norvodesigns@gmail.com",
+    const transporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: { user, pass },
+    });
+
+    await transporter.sendMail({
+      from: `"Norvo" <${user}>`,
+      to: process.env.BRIEF_TO_EMAIL || user,
       replyTo: email,
-      subject,
-      html,
+      subject: `New project brief — ${name}${a.company ? ` (${a.company})` : ""}`,
+      html: renderBriefHtml(a, files.map((f) => f.name)),
       attachments: attachments.length ? attachments : undefined,
     });
-    if (error) {
-      console.error("[submitBrief] Resend error:", error);
-      return { ok: false, error: "We couldn't send your brief just now. Please email us directly." };
-    }
+
     return { ok: true };
   } catch (e) {
     console.error("[submitBrief] send threw:", e);
