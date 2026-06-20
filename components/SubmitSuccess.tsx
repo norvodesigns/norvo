@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef } from "react";
-import Link from "next/link";
 import { motion, useReducedMotion } from "motion/react";
+import Button from "@/components/Button";
 
 const COLORS = ["#0D7A7A", "#D9A441", "#ffffff", "#5bbfbf", "#f0c060", "#0a5a5a", "#e8b84b"];
 
@@ -157,12 +157,9 @@ export default function SubmitSuccess({
         transition={{ delay: 0.6, duration: 0.5 }}
         className="mt-8"
       >
-        <Link
-          href="/"
-          className="inline-flex items-center gap-2 rounded-full border border-black/15 px-6 py-3 text-sm text-black/65 transition-colors hover:border-[#0D7A7A] hover:text-[#0D7A7A]"
-        >
+        <Button href="/" variant="secondary" size="sm" noTilt>
           ← Back to home
-        </Link>
+        </Button>
       </motion.div>
 
       {!reduce && (
