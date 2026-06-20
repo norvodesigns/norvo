@@ -251,13 +251,24 @@ export default function HomeView({ navigate, containerRef, scrollYSmooth: _scrol
       {/* ── Property Panels ──────────────────────────────────────────── */}
       <section>
         {PROPERTIES.map((p, i) => (
-          <AtmosphericPropertyPanel
-            key={p.id}
-            property={p}
-            index={i}
-            onClick={() => navigate({ view: "property", id: p.id })}
-            containerRef={containerRef}
-          />
+          <div key={p.id}>
+            <AtmosphericPropertyPanel
+              property={p}
+              index={i}
+              onClick={() => navigate({ view: "property", id: p.id })}
+              containerRef={containerRef}
+            />
+            {/* Clear black separator between panels */}
+            {i < PROPERTIES.length - 1 && (
+              <div style={{ background: G.black, padding: "3.5rem 2rem", display: "flex", alignItems: "center", gap: "1.5rem" }}>
+                <div style={{ flex: 1, height: 1, background: "rgba(196,154,46,0.14)" }} />
+                <span style={{ color: "rgba(196,154,46,0.3)", fontSize: "0.48rem", letterSpacing: "0.32em" }}>
+                  {String(i + 2).padStart(2, "0")}
+                </span>
+                <div style={{ flex: 1, height: 1, background: "rgba(196,154,46,0.14)" }} />
+              </div>
+            )}
+          </div>
         ))}
       </section>
 

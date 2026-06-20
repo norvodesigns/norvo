@@ -1,8 +1,11 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { motion, AnimatePresence, useTransform } from "motion/react";
-import Link from "next/link";
+import {
+  motion, AnimatePresence, useTransform,
+  useMotionValue, useSpring, useReducedMotion,
+} from "motion/react";
+import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 
 import { G, ease } from "./constants";
@@ -187,35 +190,138 @@ export default function StrataPage() {
       <StrataCursor />
 
       {/* Exit button */}
-      <Link
-        href="/projects"
+      <ExitButton />
+    </div>
+  );
+}
+
+// ── Exit button: Button.tsx animation DNA, white pill ──────────────────────────
+function ExitButton() {
+  const router   = useRouter();
+  const ref      = useRef<HTMLAnchorElement>(null);
+  const reduce   = useReducedMotion();
+  const [hover, setHover] = useState(false);
+  const lastTouchRef = useRef(0);
+
+  const px  = useMotionValue(0);
+  const py  = useMotionValue(0);
+  const tsx = useSpring(px, { stiffness: 230, damping: 22, mass: 0.5 });
+  const tsy = useSpring(py, { stiffness: 230, damping: 22, mass: 0.5 });
+  const rotateX = useTransform(tsy, v => -v * 22);
+  const rotateY = useTransform(tsx, v =>  v * 22);
+
+  const setOrigin = (clientX: number, clientY: number) => {
+    const el = ref.current;
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    el.style.setProperty("--x", `${((clientX - r.left)  / r.width)  * 100}%`);
+    el.style.setProperty("--y", `${((clientY - r.top)   / r.height) * 100}%`);
+  };
+
+  const setTilt = (clientX: number, clientY: number) => {
+    if (reduce) return;
+    const r = ref.current?.getBoundingClientRect();
+    if (!r) return;
+    px.set((clientX - r.left) / r.width  - 0.5);
+    py.set((clientY - r.top)  / r.height - 0.5);
+  };
+  const resetTilt = () => { px.set(0); py.set(0); };
+
+  return (
+    <motion.a
+      ref={ref}
+      href="/projects"
+      onClick={e => { e.preventDefault(); router.push("/projects"); }}
+      onPointerEnter={e => {
+        if (e.pointerType === "touch") return;
+        if (Date.now() - lastTouchRef.current < 600) return;
+        setOrigin(e.clientX, e.clientY);
+        setHover(true);
+      }}
+      onPointerMove={e => { if (e.pointerType !== "touch") setTilt(e.clientX, e.clientY); }}
+      onPointerLeave={e => {
+        if (e.pointerType !== "touch") { setHover(false); resetTilt(); }
+      }}
+      onPointerCancel={() => { setHover(false); resetTilt(); }}
+      onPointerDown={e => {
+        if (e.pointerType !== "touch") return;
+        lastTouchRef.current = Date.now();
+        setOrigin(e.clientX, e.clientY);
+        setHover(true);
+      }}
+      whileHover={reduce ? {} : { y: -2 }}
+      whileTap={reduce   ? {} : { scale: 0.94 }}
+      transition={{ type: "spring", stiffness: 420, damping: 22 }}
+      style={{
+        position: "fixed", bottom: 24, left: 24, zIndex: 600,
+        display: "inline-flex", alignItems: "center", justifyContent: "center",
+        padding: "0.65rem 1.75rem",
+        background: "#ffffff",
+        borderRadius: 9999,
+        overflow: "hidden",
+        textDecoration: "none",
+        boxShadow: "0 4px 24px rgba(0,0,0,0.35)",
+        rotateX, rotateY,
+        transformPerspective: 600,
+        "--x": "50%",
+        "--y": "50%",
+      } as React.CSSProperties}
+    >
+      {/* Base label */}
+      <span style={{
+        position: "relative", zIndex: 0,
+        display: "inline-flex", alignItems: "center", gap: 6,
+        color: "#0D0D0B",
+        fontSize: "0.65rem",
+        fontWeight: 500,
+        letterSpacing: "0.18em",
+        fontFamily: "inherit",
+        whiteSpace: "nowrap",
+      }}>
+        ← EXIT
+      </span>
+
+      {/* Ripple fill — dark (#0D0D0B) expanding from pointer */}
+      <span
+        aria-hidden
         style={{
-          position: "fixed", bottom: 24, left: 24, zIndex: 600,
-          display: "flex", alignItems: "center", gap: 8,
-          padding: "0.45rem 1rem",
-          background: "rgba(13,13,11,0.75)",
-          border: "1px solid rgba(224,223,219,0.18)",
-          backdropFilter: "blur(8px)",
-          WebkitBackdropFilter: "blur(8px)",
-          color: "rgba(250,250,249,0.65)",
-          fontSize: "0.5rem",
-          letterSpacing: "0.22em",
-          textDecoration: "none",
-          transition: "color 0.2s ease, border-color 0.2s ease",
-        }}
-        onMouseEnter={e => {
-          const el = e.currentTarget;
-          el.style.color = G.white;
-          el.style.borderColor = "rgba(196,154,46,0.4)";
-        }}
-        onMouseLeave={e => {
-          const el = e.currentTarget;
-          el.style.color = "rgba(250,250,249,0.65)";
-          el.style.borderColor = "rgba(224,223,219,0.18)";
+          position: "absolute", inset: 0, zIndex: 10,
+          display: "flex", alignItems: "center", justifyContent: "center",
+          background: "#0D0D0B",
+          clipPath: hover
+            ? "circle(150% at var(--x) var(--y))"
+            : "circle(0%   at var(--x) var(--y))",
+          transition: "clip-path 500ms ease-out",
         }}
       >
-        ← EXIT
-      </Link>
-    </div>
+        <span style={{
+          display: "inline-flex", alignItems: "center", gap: 6,
+          color: "#ffffff",
+          fontSize: "0.65rem",
+          fontWeight: 500,
+          letterSpacing: "0.18em",
+          fontFamily: "inherit",
+          whiteSpace: "nowrap",
+        }}>
+          ← EXIT
+        </span>
+      </span>
+
+      {/* Shimmer shine */}
+      <span
+        aria-hidden
+        style={{
+          pointerEvents: "none",
+          position: "absolute",
+          top: 0, zIndex: 20,
+          height: "100%", width: "33%",
+          left: hover ? "100%" : "-33%",
+          transform: "skewX(-12deg)",
+          background: "rgba(255,255,255,0.35)",
+          filter: "blur(4px)",
+          transition: "left 700ms ease-out",
+        }}
+      />
+    </motion.a>
   );
 }

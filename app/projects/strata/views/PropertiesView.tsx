@@ -142,16 +142,16 @@ export default function PropertiesView({ navigate, containerRef }: Props) {
               onClick={() => navigate({ view: "property", id: p.id })}
               containerRef={containerRef}
             />
-            {/* Gold hairline separator with diamond */}
+            {/* Clear black separator between panels */}
             {i < PROPERTIES.length - 1 && (
               <div style={{
-                display: "flex", alignItems: "center", gap: "1rem",
-                padding: "0 2rem",
+                display: "flex", alignItems: "center", gap: "1.5rem",
+                padding: "3.5rem 2rem",
                 background: G.black,
               }}>
-                <div style={{ flex: 1, height: 1, background: `rgba(196,154,46,0.1)` }} />
-                <div style={{ color: `rgba(196,154,46,0.3)`, fontSize: "0.55rem" }}>◆</div>
-                <div style={{ flex: 1, height: 1, background: `rgba(196,154,46,0.1)` }} />
+                <div style={{ flex: 1, height: 1, background: "rgba(196,154,46,0.14)" }} />
+                <span style={{ color: "rgba(196,154,46,0.3)", fontSize: "0.48rem", letterSpacing: "0.32em" }}>◆</span>
+                <div style={{ flex: 1, height: 1, background: "rgba(196,154,46,0.14)" }} />
               </div>
             )}
           </div>
