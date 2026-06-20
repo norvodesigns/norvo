@@ -1,7 +1,15 @@
 "use client";
 
-import { useRef, useState, type RefObject } from "react";
-import { motion, useScroll, useTransform, useSpring } from "motion/react";
+import { useRef, useState, useEffect, type RefObject } from "react";
+import {
+  motion,
+  useScroll,
+  useTransform,
+  useSpring,
+  useMotionValue,
+  useReducedMotion,
+} from "motion/react";
+import { useDeviceTilt } from "@/components/DeviceTilt";
 import type { Property } from "../../data";
 import { G } from "../../constants";
 
@@ -15,6 +23,8 @@ interface Props {
 export default function AtmosphericPropertyPanel({ property: p, index, onClick, containerRef }: Props) {
   const panelRef = useRef<HTMLDivElement>(null);
   const [hovered, setHovered] = useState(false);
+  const reduce = useReducedMotion();
+  const tilt   = useDeviceTilt();
 
   const { scrollYProgress } = useScroll({
     target: panelRef,
@@ -22,9 +32,23 @@ export default function AtmosphericPropertyPanel({ property: p, index, onClick, 
     offset: ["start end", "end start"],
   });
 
-  const imgY     = useTransform(scrollYProgress, [0, 1], ["-12%", "12%"]);
-  const imgScale = useSpring(hovered ? 1.05 : 1.0, { stiffness: 200, damping: 30 });
-  const arrowX   = useSpring(hovered ? 0 : -8,     { stiffness: 200, damping: 30 });
+  // Scroll parallax
+  const imgY = useTransform(scrollYProgress, [0, 1], ["-12%", "12%"]);
+
+  // Gyro / cursor x-parallax on image
+  const gyroX    = useMotionValue(0);
+  const imgShiftX = useSpring(gyroX, { stiffness: 60, damping: 20 });
+
+  useEffect(() => {
+    if (reduce || !tilt?.enabled) return;
+    const u = tilt.tiltX.on("change", v => gyroX.set(v * 18));
+    return () => { u(); gyroX.set(0); };
+  }, [tilt, reduce, gyroX]);
+
+  // Hover springs
+  const imgScale = useSpring(hovered ? 1.045 : 1.0, { stiffness: 200, damping: 30 });
+  const arrowX   = useSpring(hovered ? 0 : -8,      { stiffness: 200, damping: 30 });
+  const accentH  = useSpring(hovered ? 1 : 0,        { stiffness: 180, damping: 26 });
 
   const num = String(index + 1).padStart(2, "0");
 
@@ -44,7 +68,7 @@ export default function AtmosphericPropertyPanel({ property: p, index, onClick, 
         alignItems: "flex-end",
       }}
     >
-      {/* Background image with parallax */}
+      {/* Background: scroll parallax → gyro x shift */}
       <motion.div
         style={{
           position: "absolute", inset: "-15%",
@@ -52,33 +76,52 @@ export default function AtmosphericPropertyPanel({ property: p, index, onClick, 
           scale: imgScale,
         }}
       >
-        <img
-          src={p.heroImage}
-          alt={p.name}
-          style={{ width: "100%", height: "100%", objectFit: "cover" }}
-          loading="lazy"
-        />
-        {/* Dark overlay */}
+        <motion.div
+          style={{ position: "absolute", inset: 0, x: imgShiftX }}
+        >
+          <img
+            src={p.heroImage}
+            alt={p.name}
+            style={{ width: "100%", height: "100%", objectFit: "cover" }}
+            loading="lazy"
+          />
+        </motion.div>
+
+        {/* Dark overlay — lifts on hover */}
         <div style={{
           position: "absolute", inset: 0,
           background: hovered
-            ? "linear-gradient(to top, rgba(13,13,11,0.92) 0%, rgba(13,13,11,0.35) 55%, transparent 100%)"
-            : "linear-gradient(to top, rgba(13,13,11,0.88) 0%, rgba(13,13,11,0.25) 50%, transparent 100%)",
-          transition: "background 0.5s ease",
+            ? "linear-gradient(to top, rgba(13,13,11,0.93) 0%, rgba(13,13,11,0.3) 55%, transparent 100%)"
+            : "linear-gradient(to top, rgba(13,13,11,0.88) 0%, rgba(13,13,11,0.22) 50%, transparent 100%)",
+          transition: "background 0.55s ease",
         }} />
       </motion.div>
 
-      {/* Mid layer: environmental data (desktop only) */}
+      {/* Gold vertical accent — scaleY 0→1 on hover, left edge */}
+      <motion.div
+        style={{
+          position: "absolute",
+          left: 0, top: "10%", bottom: "10%",
+          width: 2,
+          scaleY: accentH,
+          transformOrigin: "top",
+          background: "linear-gradient(to bottom, transparent, rgba(196,154,46,0.7) 30%, rgba(196,154,46,0.55) 70%, transparent)",
+          pointerEvents: "none",
+          zIndex: 2,
+        }}
+      />
+
+      {/* Environmental data — desktop only */}
       <div style={{
         position: "absolute", top: 32, right: 32,
         textAlign: "right",
         pointerEvents: "none",
         display: "none",
       }} className="md:block">
-        <div style={{ color: `rgba(196,154,46,0.4)`, fontSize: "0.5rem", letterSpacing: "0.24em", marginBottom: 2 }}>
+        <div style={{ color: "rgba(196,154,46,0.4)", fontSize: "0.5rem", letterSpacing: "0.24em", marginBottom: 2 }}>
           {p.coordinates}
         </div>
-        <div style={{ color: `rgba(196,154,46,0.3)`, fontSize: "0.45rem", letterSpacing: "0.2em" }}>
+        <div style={{ color: "rgba(196,154,46,0.3)", fontSize: "0.45rem", letterSpacing: "0.2em" }}>
           {p.elevation} · {p.district}
         </div>
       </div>
@@ -86,7 +129,7 @@ export default function AtmosphericPropertyPanel({ property: p, index, onClick, 
       {/* Panel index */}
       <div style={{
         position: "absolute", top: 32, left: 32,
-        color: `rgba(250,250,249,0.18)`,
+        color: "rgba(250,250,249,0.18)",
         fontSize: "0.6rem",
         letterSpacing: "0.22em",
         fontVariantNumeric: "tabular-nums",
@@ -95,13 +138,13 @@ export default function AtmosphericPropertyPanel({ property: p, index, onClick, 
         {num} / 06
       </div>
 
-      {/* Foreground: text */}
+      {/* Foreground text */}
       <div style={{
         position: "relative", zIndex: 1,
         padding: "0 2rem 2.5rem",
         width: "100%",
       }}>
-        <div style={{ color: `rgba(196,154,46,0.75)`, fontSize: "0.5rem", letterSpacing: "0.32em", marginBottom: "0.75rem" }}>
+        <div style={{ color: "rgba(196,154,46,0.75)", fontSize: "0.5rem", letterSpacing: "0.32em", marginBottom: "0.75rem" }}>
           {p.location.toUpperCase()}
         </div>
 
@@ -116,15 +159,15 @@ export default function AtmosphericPropertyPanel({ property: p, index, onClick, 
           {p.name}
         </h3>
 
-        <div style={{ color: `rgba(196,154,46,0.9)`, fontSize: "0.8rem", letterSpacing: "0.08em", marginBottom: "1rem" }}>
+        <div style={{ color: "rgba(196,154,46,0.9)", fontSize: "0.8rem", letterSpacing: "0.08em", marginBottom: "1rem" }}>
           {p.priceRange}
         </div>
 
-        <div style={{ color: `rgba(250,250,249,0.45)`, fontSize: "0.65rem", marginBottom: "1.5rem" }}>
+        <div style={{ color: "rgba(250,250,249,0.45)", fontSize: "0.65rem", marginBottom: "1.5rem" }}>
           {p.beds} bed · {p.baths} bath · {p.sqft} sq ft
         </div>
 
-        {/* CTA — reveals on hover */}
+        {/* CTA — brightens and arrow slides on hover */}
         <motion.div
           style={{
             display: "flex", alignItems: "center", gap: 8,
@@ -135,7 +178,7 @@ export default function AtmosphericPropertyPanel({ property: p, index, onClick, 
             transition: "opacity 0.4s ease",
           }}
         >
-          <span>VIEW PROPERTY</span>
+          <span>VIEW LISTING</span>
           <motion.span style={{ x: arrowX, display: "inline-block" }}>→</motion.span>
         </motion.div>
 
@@ -145,8 +188,8 @@ export default function AtmosphericPropertyPanel({ property: p, index, onClick, 
             display: "inline-block",
             marginTop: "1rem",
             padding: "0.2rem 0.75rem",
-            border: `1px solid rgba(196,154,46,0.4)`,
-            color: `rgba(196,154,46,0.85)`,
+            border: "1px solid rgba(196,154,46,0.4)",
+            color: "rgba(196,154,46,0.85)",
             fontSize: "0.5rem",
             letterSpacing: "0.28em",
           }}>
@@ -159,7 +202,7 @@ export default function AtmosphericPropertyPanel({ property: p, index, onClick, 
       <div style={{
         position: "absolute", bottom: 0, left: 0, right: 0,
         height: 1,
-        background: `rgba(196,154,46,0.15)`,
+        background: "rgba(196,154,46,0.15)",
       }} />
     </div>
   );

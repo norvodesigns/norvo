@@ -12,6 +12,7 @@ import {
 } from "motion/react";
 import { Scramble } from "@/components/TextAnimations";
 import ScrollReveal3D from "@/components/ScrollReveal3D";
+import { useDeviceTilt } from "@/components/DeviceTilt";
 import { G, ease } from "../constants";
 import type { Nav } from "../types";
 import { PROPERTIES } from "../data";
@@ -26,10 +27,10 @@ interface Props {
 const STRATA_LETTERS = "STRATA".split("");
 
 const HOME_STATS = [
-  { value: "847+", label: "Residences" },
-  { value: "$4.2B", label: "Portfolio Volume" },
-  { value: "17",   label: "Years" },
-  { value: "98%",  label: "Satisfaction" },
+  { value: "IDX",  label: "MLS Integration" },
+  { value: "4–6w", label: "Time to Launch" },
+  { value: "100%", label: "Custom Design" },
+  { value: "99+",  label: "Lighthouse Score" },
 ];
 
 const HERO_MARKERS = [
@@ -39,7 +40,6 @@ const HERO_MARKERS = [
   { label: "SITE AREA",   value: PROPERTIES[0].siteArea,    pos: { bottom: "28%", right: "4%" }, right: true },
 ];
 
-// Stat bg-number parallax — extracted so hooks aren't in loops
 function StatBgNumber({
   value, index, progress,
 }: { value: string; index: number; progress: MotionValue<number> }) {
@@ -73,18 +73,20 @@ export default function HomeView({ navigate, containerRef, scrollYSmooth: _scrol
   const heroRef  = useRef<HTMLElement>(null);
   const statsRef = useRef<HTMLDivElement>(null);
   const reduce   = useReducedMotion();
+  const tilt     = useDeviceTilt();
   const [isMd, setIsMd] = useState(false);
 
   useEffect(() => {
     setIsMd(window.matchMedia("(min-width: 768px)").matches);
   }, []);
 
-  // Cursor parallax for hero image (desktop)
+  // Shared cursor / gyro motion values for hero image parallax
   const cursorX    = useMotionValue(0);
   const cursorY    = useMotionValue(0);
   const imgCursorX = useSpring(cursorX, { stiffness: 55, damping: 18 });
   const imgCursorY = useSpring(cursorY, { stiffness: 55, damping: 18 });
 
+  // Mouse — desktop
   useEffect(() => {
     if (reduce) return;
     const onMove = (e: MouseEvent) => {
@@ -94,6 +96,14 @@ export default function HomeView({ navigate, containerRef, scrollYSmooth: _scrol
     window.addEventListener("mousemove", onMove, { passive: true });
     return () => window.removeEventListener("mousemove", onMove);
   }, [cursorX, cursorY, reduce]);
+
+  // Gyro — mobile
+  useEffect(() => {
+    if (reduce || !tilt?.enabled) return;
+    const ux = tilt.tiltX.on("change", v => cursorX.set(v * 36));
+    const uy = tilt.tiltY.on("change", v => cursorY.set(-v * 24));
+    return () => { ux(); uy(); };
+  }, [tilt, reduce, cursorX, cursorY]);
 
   // Hero scroll parallax
   const { scrollYProgress: heroProgress } = useScroll({
@@ -127,9 +137,8 @@ export default function HomeView({ navigate, containerRef, scrollYSmooth: _scrol
         ref={heroRef as React.RefObject<HTMLElement>}
         style={{ position: "relative", height: "100dvh", overflow: "hidden" }}
       >
-        {/* Scroll parallax wrapper */}
+        {/* Scroll parallax → cursor parallax */}
         <motion.div style={{ position: "absolute", inset: "-15%", y: imgY }}>
-          {/* Cursor parallax wrapper */}
           <motion.div style={{ position: "absolute", inset: 0, x: imgCursorX, y: imgCursorY }}>
             <img
               src={PROPERTIES[0].heroImage}
@@ -182,7 +191,20 @@ export default function HomeView({ navigate, containerRef, scrollYSmooth: _scrol
             y: wordmarkY, opacity: heroOp,
           }}
         >
-          <div style={{ perspective: 900 }}>
+          {/* Frosted backdrop so the letters read clean over busy architecture */}
+          <div style={{
+            position: "absolute",
+            width: "min(96vw, 1280px)",
+            height: "clamp(9rem, 22vw, 24rem)",
+            backdropFilter: "blur(22px)",
+            WebkitBackdropFilter: "blur(22px)",
+            background: "rgba(13,13,11,0.18)",
+            pointerEvents: "none",
+            borderRadius: 2,
+          }} />
+
+          {/* Text above the blur */}
+          <div style={{ position: "relative", zIndex: 1, display: "flex", flexDirection: "column", alignItems: "center", perspective: 900 }}>
             <h1 style={{
               fontFamily: "var(--font-display)",
               fontWeight: 100,
@@ -205,16 +227,16 @@ export default function HomeView({ navigate, containerRef, scrollYSmooth: _scrol
                 </motion.span>
               ))}
             </h1>
-          </div>
 
-          <motion.p
-            initial={reduce ? false : { opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 1.2, duration: 0.7, ease }}
-            style={{ marginTop: "1.5rem", color: "rgba(250,250,249,0.45)", fontSize: "0.65rem", letterSpacing: "0.32em", textAlign: "center" }}
-          >
-            <Scramble text="LUXURY REAL ESTATE · CALIFORNIA" duration={1200} />
-          </motion.p>
+            <motion.p
+              initial={reduce ? false : { opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 1.2, duration: 0.7, ease }}
+              style={{ marginTop: "1.5rem", color: "rgba(250,250,249,0.5)", fontSize: "0.65rem", letterSpacing: "0.32em", textAlign: "center" }}
+            >
+              <Scramble text="REAL ESTATE WEBSITES · BUILT BY NORVO" duration={1200} />
+            </motion.p>
+          </div>
         </motion.div>
 
         {/* CTA buttons */}
@@ -227,8 +249,8 @@ export default function HomeView({ navigate, containerRef, scrollYSmooth: _scrol
             display: "flex", justifyContent: "center", gap: "1.5rem", flexWrap: "wrap",
           }}
         >
-          <NavBtn primary onClick={() => navigate({ view: "properties" })}>VIEW RESIDENCES</NavBtn>
-          <NavBtn onClick={() => navigate({ view: "contact" })}>PRIVATE ENQUIRY</NavBtn>
+          <NavBtn primary onClick={() => navigate({ view: "properties" })}>SEE EXAMPLE LISTINGS</NavBtn>
+          <NavBtn onClick={() => navigate({ view: "contact" })}>START YOUR PROJECT</NavBtn>
         </motion.div>
 
         {/* Scroll indicator */}
@@ -250,6 +272,23 @@ export default function HomeView({ navigate, containerRef, scrollYSmooth: _scrol
 
       {/* ── Property Panels ──────────────────────────────────────────── */}
       <section>
+        {/* IDX callout */}
+        <div style={{
+          background: G.black, padding: "3rem 2rem",
+          textAlign: "center",
+          borderBottom: "1px solid rgba(196,154,46,0.1)",
+        }}>
+          <ScrollReveal3D axis="y">
+            <div style={{ color: "rgba(196,154,46,0.7)", fontSize: "0.5rem", letterSpacing: "0.32em", marginBottom: "0.75rem" }}>
+              IDX / MLS INTEGRATION
+            </div>
+            <p style={{ color: "rgba(250,250,249,0.45)", fontSize: "0.75rem", maxWidth: 560, margin: "0 auto" }}>
+              The listings below are example data. On your real site, these panels
+              pull live from your MLS feed via IDX integration — included at no extra setup cost.
+            </p>
+          </ScrollReveal3D>
+        </div>
+
         {PROPERTIES.map((p, i) => (
           <div key={p.id}>
             <AtmosphericPropertyPanel
@@ -258,7 +297,6 @@ export default function HomeView({ navigate, containerRef, scrollYSmooth: _scrol
               onClick={() => navigate({ view: "property", id: p.id })}
               containerRef={containerRef}
             />
-            {/* Clear black separator between panels */}
             {i < PROPERTIES.length - 1 && (
               <div style={{ background: G.black, padding: "3.5rem 2rem", display: "flex", alignItems: "center", gap: "1.5rem" }}>
                 <div style={{ flex: 1, height: 1, background: "rgba(196,154,46,0.14)" }} />
@@ -309,57 +347,106 @@ export default function HomeView({ navigate, containerRef, scrollYSmooth: _scrol
       <section style={{ padding: "8rem 2rem 10rem", textAlign: "center", borderTop: "1px solid rgba(224,223,219,0.08)" }}>
         <ScrollReveal3D axis="y">
           <div style={{ color: "rgba(196,154,46,0.65)", fontSize: "0.5rem", letterSpacing: "0.36em", marginBottom: "1.25rem" }}>
-            <Scramble text="BEGIN YOUR SEARCH" />
+            <Scramble text="BUILT TO PERFORM" />
           </div>
           <h2 style={{
             fontFamily: "var(--font-display)",
             fontWeight: 100, fontSize: "clamp(2rem, 5vw, 3.5rem)",
-            color: G.white, margin: "0 0 2.5rem",
+            color: G.white, margin: "0 0 1rem",
           }}>
-            Find Your Residence
+            Your Real Estate Website
           </h2>
+          <p style={{ color: "rgba(250,250,249,0.4)", fontSize: "0.8rem", maxWidth: 460, margin: "0 auto 2.5rem" }}>
+            Custom design, IDX integration, lead capture — delivered in 4–6 weeks.
+            No templates. No shared hosting.
+          </p>
           <div style={{ display: "flex", justifyContent: "center", gap: "1rem", flexWrap: "wrap" }}>
-            <NavBtn primary onClick={() => navigate({ view: "properties" })}>ALL PROPERTIES</NavBtn>
-            <NavBtn onClick={() => navigate({ view: "contact" })}>SPEAK TO AN ADVISOR</NavBtn>
+            <NavBtn primary onClick={() => navigate({ view: "properties" })}>EXAMPLE LISTINGS</NavBtn>
+            <NavBtn onClick={() => navigate({ view: "contact" })}>START A PROJECT</NavBtn>
           </div>
         </ScrollReveal3D>
       </section>
 
       <div style={{ padding: "2rem", textAlign: "center", borderTop: "1px solid rgba(224,223,219,0.06)" }}>
         <p style={{ color: "rgba(250,250,249,0.18)", fontSize: "0.5rem", letterSpacing: "0.16em" }}>
-          ALL CONTENT IS ENTIRELY FICTIONAL — STRATA IS A CONCEPT SHOWCASE BY NORVO
+          STRATA IS A CONCEPT SHOWCASE — ALL LISTINGS ARE FICTIONAL · NORVO.DESIGN
         </p>
       </div>
     </motion.div>
   );
 }
 
-// ── Tiny inline nav button ────────────────────────────────────────────────────
+// ── CTA button with ripple fill ───────────────────────────────────────────────
 function NavBtn({ children, onClick, primary = false }: {
   children: React.ReactNode;
   onClick: () => void;
   primary?: boolean;
 }) {
-  const [over, setOver] = useState(false);
+  const ref = useRef<HTMLButtonElement>(null);
+  const [hover, setHover] = useState(false);
+  const lastTouchRef = useRef(0);
+
+  const setOrigin = (clientX: number, clientY: number) => {
+    const el = ref.current;
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    el.style.setProperty("--x", `${((clientX - r.left) / r.width)  * 100}%`);
+    el.style.setProperty("--y", `${((clientY - r.top)  / r.height) * 100}%`);
+  };
+
   return (
-    <button
+    <motion.button
+      ref={ref}
       onClick={onClick}
-      onMouseEnter={() => setOver(true)}
-      onMouseLeave={() => setOver(false)}
-      style={{
-        background:   primary ? (over ? "rgba(196,154,46,0.15)" : "rgba(196,154,46,0.08)") : "transparent",
-        border:       primary ? "1px solid rgba(196,154,46,0.55)" : "1px solid rgba(250,250,249,0.2)",
-        color:        primary ? "rgba(196,154,46,0.9)" : (over ? "rgba(250,250,249,0.85)" : "rgba(250,250,249,0.55)"),
-        borderColor:  !primary && over ? "rgba(196,154,46,0.35)" : undefined,
-        padding: "0.65rem 2rem",
-        fontSize: "0.5rem",
-        letterSpacing: "0.3em",
-        cursor: "pointer",
-        fontFamily: "inherit",
-        transition: "all 0.28s ease",
+      onPointerEnter={e => {
+        if (e.pointerType === "touch") return;
+        if (Date.now() - lastTouchRef.current < 600) return;
+        setOrigin(e.clientX, e.clientY); setHover(true);
       }}
+      onPointerLeave={e => { if (e.pointerType !== "touch") setHover(false); }}
+      onPointerCancel={() => setHover(false)}
+      onPointerDown={e => {
+        if (e.pointerType !== "touch") return;
+        lastTouchRef.current = Date.now();
+        setOrigin(e.clientX, e.clientY); setHover(true);
+      }}
+      whileTap={{ scale: 0.94 }}
+      transition={{ type: "spring", stiffness: 420, damping: 22 }}
+      style={{
+        position: "relative", overflow: "hidden",
+        background: primary ? "rgba(196,154,46,0.08)" : "transparent",
+        border: primary ? "1px solid rgba(196,154,46,0.55)" : "1px solid rgba(250,250,249,0.2)",
+        padding: "0.65rem 2rem",
+        fontSize: "0.5rem", letterSpacing: "0.3em",
+        cursor: "pointer", fontFamily: "inherit",
+        "--x": "50%", "--y": "50%",
+      } as React.CSSProperties}
     >
-      {children}
-    </button>
+      <span style={{
+        position: "relative", zIndex: 0,
+        color: primary ? "rgba(196,154,46,0.9)" : "rgba(250,250,249,0.55)",
+      }}>
+        {children}
+      </span>
+
+      {/* Ripple fill */}
+      <span
+        aria-hidden
+        style={{
+          position: "absolute", inset: 0, zIndex: 10,
+          display: "flex", alignItems: "center", justifyContent: "center",
+          background: primary ? "rgba(196,154,46,0.2)" : "rgba(250,250,249,0.1)",
+          clipPath: hover ? "circle(150% at var(--x) var(--y))" : "circle(0% at var(--x) var(--y))",
+          transition: "clip-path 450ms ease-out",
+        }}
+      >
+        <span style={{
+          color: primary ? "rgba(196,154,46,1)" : "rgba(250,250,249,0.9)",
+          fontSize: "0.5rem", letterSpacing: "0.3em",
+        }}>
+          {children}
+        </span>
+      </span>
+    </motion.button>
   );
 }

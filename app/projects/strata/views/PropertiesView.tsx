@@ -77,7 +77,7 @@ export default function PropertiesView({ navigate, containerRef }: Props) {
           }}
         >
           <div style={{ color: `rgba(196,154,46,0.7)`, fontSize: "0.5rem", letterSpacing: "0.36em", marginBottom: "1.25rem" }}>
-            <Scramble text="ALL RESIDENCES" />
+            <Scramble text="IDX DEMO LISTINGS" />
           </div>
           <h1 style={{
             fontFamily: "var(--font-display)",
@@ -87,10 +87,10 @@ export default function PropertiesView({ navigate, containerRef }: Props) {
             letterSpacing: "0.06em",
             margin: 0,
           }}>
-            Properties
+            Example Listings
           </h1>
           <p style={{ color: `rgba(250,250,249,0.45)`, fontSize: "0.75rem", marginTop: "1rem" }}>
-            {PROPERTIES.length} curated residences across California
+            On your live site these pull from your MLS board via IDX — updated automatically
           </p>
         </motion.div>
 

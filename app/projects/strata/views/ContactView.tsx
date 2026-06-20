@@ -5,7 +5,6 @@ import { motion } from "motion/react";
 import { submitContact } from "@/app/contact/actions";
 import { G, ease } from "../constants";
 import type { Nav } from "../types";
-import { AGENTS } from "../data";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -13,7 +12,7 @@ const fieldStyle: React.CSSProperties = {
   width: "100%",
   background: "transparent",
   border: "none",
-  borderBottom: `1px solid rgba(224,223,219,0.22)`,
+  borderBottom: "1px solid rgba(224,223,219,0.22)",
   color: G.white,
   fontSize: "0.85rem",
   padding: "0.75rem 0",
@@ -24,11 +23,17 @@ const fieldStyle: React.CSSProperties = {
 
 const labelStyle: React.CSSProperties = {
   display: "block",
-  color: `rgba(250,250,249,0.4)`,
+  color: "rgba(250,250,249,0.4)",
   fontSize: "0.5rem",
   letterSpacing: "0.38em",
   marginBottom: "0.5rem",
 };
+
+const OFFERINGS = [
+  { label: "IDX Integration", detail: "Live MLS listings, auto-synced" },
+  { label: "Custom Design",   detail: "No templates. Built around your brand." },
+  { label: "4–6 Week Delivery", detail: "Fixed scope, fixed timeline" },
+];
 
 interface Props { navigate: Nav; }
 
@@ -39,7 +44,6 @@ export default function ContactView({ navigate: _navigate }: Props) {
   const [done,    setDone]    = useState(false);
   const [err,     setErr]     = useState("");
   const [pending, startTransition] = useTransition();
-
   const [focusedField, setFocusedField] = useState<string | null>(null);
 
   const valid = name.trim() !== "" && EMAIL_RE.test(email) && message.trim() !== "";
@@ -63,7 +67,7 @@ export default function ContactView({ navigate: _navigate }: Props) {
 
   const gold = (f: string): React.CSSProperties => ({
     ...fieldStyle,
-    borderBottom: `1px solid ${focusedField === f ? `rgba(196,154,46,0.7)` : `rgba(224,223,219,0.22)`}`,
+    borderBottom: `1px solid ${focusedField === f ? "rgba(196,154,46,0.7)" : "rgba(224,223,219,0.22)"}`,
   });
 
   if (done) {
@@ -94,21 +98,22 @@ export default function ContactView({ navigate: _navigate }: Props) {
             color: G.white,
             marginBottom: "1rem",
           }}>
-            Message received.
+            We&apos;ll be in touch.
           </h2>
-          <p style={{ color: `rgba(250,250,249,0.45)`, fontSize: "0.85rem", maxWidth: 380, margin: "0 auto 2.5rem" }}>
-            We&apos;ll be in touch at <span style={{ color: G.white }}>{email}</span> within 1–2 business days.
+          <p style={{ color: "rgba(250,250,249,0.45)", fontSize: "0.85rem", maxWidth: 380, margin: "0 auto 2.5rem" }}>
+            Expect a reply at <span style={{ color: G.white }}>{email}</span> within 1–2 business days.
           </p>
           <button
             onClick={() => setDone(false)}
             style={{
               background: "transparent",
-              border: `1px solid rgba(196,154,46,0.4)`,
-              color: `rgba(196,154,46,0.8)`,
+              border: "1px solid rgba(196,154,46,0.4)",
+              color: "rgba(196,154,46,0.8)",
               padding: "0.65rem 2rem",
               fontSize: "0.55rem",
               letterSpacing: "0.28em",
               cursor: "pointer",
+              fontFamily: "inherit",
             }}
           >
             SEND ANOTHER
@@ -132,9 +137,9 @@ export default function ContactView({ navigate: _navigate }: Props) {
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.15, duration: 0.6, ease }}
-          style={{ color: `rgba(196,154,46,0.7)`, fontSize: "0.5rem", letterSpacing: "0.36em", marginBottom: "1.25rem" }}
+          style={{ color: "rgba(196,154,46,0.7)", fontSize: "0.5rem", letterSpacing: "0.36em", marginBottom: "1.25rem" }}
         >
-          PRIVATE ENQUIRIES
+          WORK WITH NORVO
         </motion.div>
         <motion.h1
           initial={{ opacity: 0, y: 16 }}
@@ -150,26 +155,34 @@ export default function ContactView({ navigate: _navigate }: Props) {
             margin: 0,
           }}
         >
-          Contact Strata
+          Start Your Project
         </motion.h1>
+        <motion.p
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4, duration: 0.65, ease }}
+          style={{ color: "rgba(250,250,249,0.38)", fontSize: "0.75rem", marginTop: "1.25rem", maxWidth: 420, marginLeft: "auto", marginRight: "auto" }}
+        >
+          Tell us about your practice and we&apos;ll scope a custom site with IDX integration, designed for your market.
+        </motion.p>
       </div>
 
-      {/* Advisors */}
+      {/* What&apos;s Included strip */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ delay: 0.4, duration: 0.7 }}
+        transition={{ delay: 0.5, duration: 0.7 }}
         style={{
           display: "flex", justifyContent: "center", gap: "3rem",
-          padding: "0 2rem 3rem",
-          borderBottom: `1px solid rgba(224,223,219,0.1)`,
+          padding: "1.5rem 2rem 3rem",
+          borderBottom: "1px solid rgba(224,223,219,0.1)",
           flexWrap: "wrap",
         }}
       >
-        {AGENTS.map(a => (
-          <div key={a.id} style={{ textAlign: "center" }}>
-            <div style={{ color: G.white, fontSize: "0.7rem", marginBottom: 2 }}>{a.name}</div>
-            <div style={{ color: `rgba(250,250,249,0.4)`, fontSize: "0.55rem", letterSpacing: "0.12em" }}>{a.title}</div>
+        {OFFERINGS.map(o => (
+          <div key={o.label} style={{ textAlign: "center" }}>
+            <div style={{ color: G.white, fontSize: "0.7rem", marginBottom: 4, fontWeight: 400 }}>{o.label}</div>
+            <div style={{ color: "rgba(250,250,249,0.35)", fontSize: "0.55rem", letterSpacing: "0.1em" }}>{o.detail}</div>
           </div>
         ))}
       </motion.div>
@@ -178,7 +191,7 @@ export default function ContactView({ navigate: _navigate }: Props) {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.5, duration: 0.7, ease }}
+        transition={{ delay: 0.55, duration: 0.7, ease }}
         style={{ maxWidth: 540, margin: "0 auto", padding: "4rem 2rem 8rem" }}
       >
         <form onSubmit={submit} style={{ display: "flex", flexDirection: "column", gap: "2.5rem" }}>
@@ -198,24 +211,24 @@ export default function ContactView({ navigate: _navigate }: Props) {
               style={gold("email")}
               type="email"
               value={email} onChange={e => setEmail(e.target.value)}
-              placeholder="jane@company.com"
+              placeholder="jane@yourrealty.com"
               onFocus={() => setFocusedField("email")}
               onBlur={() => setFocusedField(null)}
             />
           </div>
           <div>
-            <label style={labelStyle}>YOUR MESSAGE</label>
+            <label style={labelStyle}>TELL US ABOUT YOUR PRACTICE</label>
             <textarea
               style={{ ...gold("message"), resize: "none", minHeight: 120 }}
               value={message} onChange={e => setMessage(e.target.value)}
-              placeholder="Tell us about your interest…"
+              placeholder="Your MLS board, market area, what you're after…"
               onFocus={() => setFocusedField("message")}
               onBlur={() => setFocusedField(null)}
             />
           </div>
 
           {err && (
-            <div style={{ color: `rgba(196,154,46,0.8)`, fontSize: "0.7rem" }}>{err}</div>
+            <div style={{ color: "rgba(196,154,46,0.8)", fontSize: "0.7rem" }}>{err}</div>
           )}
 
           <button
@@ -225,8 +238,8 @@ export default function ContactView({ navigate: _navigate }: Props) {
               width: "100%",
               padding: "1rem",
               background: "transparent",
-              border: `1px solid ${valid && !pending ? `rgba(196,154,46,0.55)` : `rgba(224,223,219,0.18)`}`,
-              color: valid && !pending ? `rgba(196,154,46,0.9)` : `rgba(250,250,249,0.25)`,
+              border: `1px solid ${valid && !pending ? "rgba(196,154,46,0.55)" : "rgba(224,223,219,0.18)"}`,
+              color: valid && !pending ? "rgba(196,154,46,0.9)" : "rgba(250,250,249,0.25)",
               fontSize: "0.55rem",
               letterSpacing: "0.3em",
               cursor: valid && !pending ? "pointer" : "not-allowed",
@@ -234,18 +247,18 @@ export default function ContactView({ navigate: _navigate }: Props) {
               fontFamily: "inherit",
             }}
           >
-            {pending ? "SENDING…" : "SUBMIT ENQUIRY"}
+            {pending ? "SENDING…" : "START THE CONVERSATION"}
           </button>
         </form>
 
         <p style={{
           marginTop: "3rem",
-          color: `rgba(250,250,249,0.2)`,
+          color: "rgba(250,250,249,0.2)",
           fontSize: "0.55rem",
           letterSpacing: "0.12em",
           textAlign: "center",
         }}>
-          All communications are strictly confidential.
+          We typically reply within one business day.
         </p>
       </motion.div>
     </motion.div>

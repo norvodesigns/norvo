@@ -3,10 +3,11 @@
 import { useState, useRef, useEffect } from "react";
 import {
   motion, AnimatePresence, useTransform,
-  useMotionValue, useSpring, useReducedMotion,
+  useMotionValue, useSpring, useReducedMotion, useInView,
 } from "motion/react";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
+import { useDeviceTilt } from "@/components/DeviceTilt";
 
 import { G, ease } from "./constants";
 import type { Route } from "./types";
@@ -60,6 +61,15 @@ export default function StrataPage() {
       scrollRafRef.current = v / max;
     });
   }, [scrollY]);
+
+  // Gyro → atmosphere look (mobile)
+  const tilt = useDeviceTilt();
+  useEffect(() => {
+    if (!tilt?.enabled) return;
+    const ux = tilt.tiltX.on("change", v => { lookRef.current.x =  v; });
+    const uy = tilt.tiltY.on("change", v => { lookRef.current.y = -v; });
+    return () => { ux(); uy(); };
+  }, [tilt]);
 
   // Scroll to top whenever view changes
   const navigate = (r: Route) => {
@@ -197,11 +207,19 @@ export default function StrataPage() {
 
 // ── Exit button: Button.tsx animation DNA, white pill ──────────────────────────
 function ExitButton() {
-  const router   = useRouter();
-  const ref      = useRef<HTMLAnchorElement>(null);
-  const reduce   = useReducedMotion();
-  const [hover, setHover] = useState(false);
+  const router       = useRouter();
+  const ref          = useRef<HTMLAnchorElement>(null);
+  const wrapRef      = useRef<HTMLDivElement>(null);
+  const reduce       = useReducedMotion();
+  const tilt         = useDeviceTilt();
+  const inView       = useInView(wrapRef);
+  const [hover, setHover]       = useState(false);
+  const [isDesktop, setDesktop] = useState(false);
   const lastTouchRef = useRef(0);
+
+  useEffect(() => {
+    setDesktop(window.matchMedia("(min-width: 768px)").matches);
+  }, []);
 
   const px  = useMotionValue(0);
   const py  = useMotionValue(0);
@@ -209,6 +227,16 @@ function ExitButton() {
   const tsy = useSpring(py, { stiffness: 230, damping: 22, mass: 0.5 });
   const rotateX = useTransform(tsy, v => -v * 22);
   const rotateY = useTransform(tsx, v =>  v * 22);
+
+  // Gyro tilt on mobile (same pattern as Button.tsx)
+  useEffect(() => {
+    if (!tilt?.enabled || !inView) return;
+    const apply = () => { px.set(tilt.tiltX.get() * 0.5); py.set(tilt.tiltY.get() * 0.5); };
+    apply();
+    const ux = tilt.tiltX.on("change", apply);
+    const uy = tilt.tiltY.on("change", apply);
+    return () => { ux(); uy(); px.set(0); py.set(0); };
+  }, [tilt, inView, px, py]);
 
   const setOrigin = (clientX: number, clientY: number) => {
     const el = ref.current;
@@ -227,101 +255,92 @@ function ExitButton() {
   };
   const resetTilt = () => { px.set(0); py.set(0); };
 
-  return (
-    <motion.a
-      ref={ref}
-      href="/projects"
-      onClick={e => { e.preventDefault(); router.push("/projects"); }}
-      onPointerEnter={e => {
-        if (e.pointerType === "touch") return;
-        if (Date.now() - lastTouchRef.current < 600) return;
-        setOrigin(e.clientX, e.clientY);
-        setHover(true);
-      }}
-      onPointerMove={e => { if (e.pointerType !== "touch") setTilt(e.clientX, e.clientY); }}
-      onPointerLeave={e => {
-        if (e.pointerType !== "touch") { setHover(false); resetTilt(); }
-      }}
-      onPointerCancel={() => { setHover(false); resetTilt(); }}
-      onPointerDown={e => {
-        if (e.pointerType !== "touch") return;
-        lastTouchRef.current = Date.now();
-        setOrigin(e.clientX, e.clientY);
-        setHover(true);
-      }}
-      whileHover={reduce ? {} : { y: -2 }}
-      whileTap={reduce   ? {} : { scale: 0.94 }}
-      transition={{ type: "spring", stiffness: 420, damping: 22 }}
-      style={{
-        position: "fixed", bottom: 24, left: 24, zIndex: 600,
-        display: "inline-flex", alignItems: "center", justifyContent: "center",
-        padding: "0.65rem 1.75rem",
-        background: "#ffffff",
-        borderRadius: 9999,
-        overflow: "hidden",
-        textDecoration: "none",
-        boxShadow: "0 4px 24px rgba(0,0,0,0.35)",
-        rotateX, rotateY,
-        transformPerspective: 600,
-        "--x": "50%",
-        "--y": "50%",
-      } as React.CSSProperties}
-    >
-      {/* Base label */}
-      <span style={{
-        position: "relative", zIndex: 0,
-        display: "inline-flex", alignItems: "center", gap: 6,
-        color: "#0D0D0B",
-        fontSize: "0.65rem",
-        fontWeight: 500,
-        letterSpacing: "0.18em",
-        fontFamily: "inherit",
-        whiteSpace: "nowrap",
-      }}>
-        ← EXIT
-      </span>
+  const pad = isDesktop ? "0.8rem 2.25rem" : "0.65rem 1.75rem";
+  const fz  = isDesktop ? "0.75rem"        : "0.65rem";
 
-      {/* Ripple fill — dark (#0D0D0B) expanding from pointer */}
-      <span
-        aria-hidden
-        style={{
-          position: "absolute", inset: 0, zIndex: 10,
-          display: "flex", alignItems: "center", justifyContent: "center",
-          background: "#0D0D0B",
-          clipPath: hover
-            ? "circle(150% at var(--x) var(--y))"
-            : "circle(0%   at var(--x) var(--y))",
-          transition: "clip-path 500ms ease-out",
+  return (
+    // Entrance wrapper — slides up from below on page load
+    <motion.div
+      ref={wrapRef}
+      initial={reduce ? false : { opacity: 0, y: 24, scale: 0.88 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{ delay: 1.1, duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+      style={{ position: "fixed", bottom: 24, left: 24, zIndex: 600 }}
+    >
+      <motion.a
+        ref={ref}
+        href="/projects"
+        onClick={e => { e.preventDefault(); router.push("/projects"); }}
+        onPointerEnter={e => {
+          if (e.pointerType === "touch") return;
+          if (Date.now() - lastTouchRef.current < 600) return;
+          setOrigin(e.clientX, e.clientY); setHover(true);
         }}
+        onPointerMove={e => { if (e.pointerType !== "touch") setTilt(e.clientX, e.clientY); }}
+        onPointerLeave={e => { if (e.pointerType !== "touch") { setHover(false); resetTilt(); } }}
+        onPointerCancel={() => { setHover(false); resetTilt(); }}
+        onPointerDown={e => {
+          if (e.pointerType !== "touch") return;
+          lastTouchRef.current = Date.now();
+          setOrigin(e.clientX, e.clientY); setHover(true);
+        }}
+        whileHover={reduce ? {} : { y: -2 }}
+        whileTap={reduce   ? {} : { scale: 0.94 }}
+        transition={{ type: "spring", stiffness: 420, damping: 22 }}
+        style={{
+          display: "inline-flex", alignItems: "center", justifyContent: "center",
+          padding: pad,
+          background: "#ffffff",
+          borderRadius: 9999,
+          overflow: "hidden",
+          textDecoration: "none",
+          boxShadow: "0 6px 28px rgba(0,0,0,0.38)",
+          rotateX, rotateY,
+          transformPerspective: 600,
+          "--x": "50%",
+          "--y": "50%",
+        } as React.CSSProperties}
       >
         <span style={{
+          position: "relative", zIndex: 0,
           display: "inline-flex", alignItems: "center", gap: 6,
-          color: "#ffffff",
-          fontSize: "0.65rem",
-          fontWeight: 500,
-          letterSpacing: "0.18em",
-          fontFamily: "inherit",
-          whiteSpace: "nowrap",
+          color: "#0D0D0B", fontSize: fz, fontWeight: 500,
+          letterSpacing: "0.18em", fontFamily: "inherit", whiteSpace: "nowrap",
         }}>
           ← EXIT
         </span>
-      </span>
 
-      {/* Shimmer shine */}
-      <span
-        aria-hidden
-        style={{
-          pointerEvents: "none",
-          position: "absolute",
-          top: 0, zIndex: 20,
-          height: "100%", width: "33%",
+        {/* Ripple fill */}
+        <span
+          aria-hidden
+          style={{
+            position: "absolute", inset: 0, zIndex: 10,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            background: "#0D0D0B",
+            clipPath: hover ? "circle(150% at var(--x) var(--y))" : "circle(0% at var(--x) var(--y))",
+            transition: "clip-path 500ms ease-out",
+          }}
+        >
+          <span style={{
+            display: "inline-flex", alignItems: "center", gap: 6,
+            color: "#ffffff", fontSize: fz, fontWeight: 500,
+            letterSpacing: "0.18em", fontFamily: "inherit", whiteSpace: "nowrap",
+          }}>
+            ← EXIT
+          </span>
+        </span>
+
+        {/* Shimmer */}
+        <span aria-hidden style={{
+          pointerEvents: "none", position: "absolute",
+          top: 0, zIndex: 20, height: "100%", width: "33%",
           left: hover ? "100%" : "-33%",
           transform: "skewX(-12deg)",
           background: "rgba(255,255,255,0.35)",
           filter: "blur(4px)",
           transition: "left 700ms ease-out",
-        }}
-      />
-    </motion.a>
+        }} />
+      </motion.a>
+    </motion.div>
   );
 }
