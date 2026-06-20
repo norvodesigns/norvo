@@ -35,6 +35,14 @@ export type Property = {
   listed: string;
   yearBuilt: string;
   lot: string;
+  coordinates: string;
+  elevation: string;
+  district: string;
+  siteArea: string;
+  primaryMaterial: string;
+  architecturalStyle: string;
+  orientation: string;
+  proximityNote: string;
 };
 
 // ─── Agents ──────────────────────────────────────────────────────────────────
@@ -104,6 +112,14 @@ export const PROPERTIES: Property[] = [
     listed: "Listed 3 weeks ago",
     yearBuilt: "2024–2025 (Est.)",
     lot: "0.42 acres",
+    coordinates: "34°03'N  118°14'W",
+    elevation: "680 FT",
+    district: "DISTRICT II — RIVERSIDE",
+    siteArea: "1,854 M²",
+    primaryMaterial: "Poured concrete · White oak · Structural glass",
+    architecturalStyle: "California Modernism",
+    orientation: "South-southwest, canyon views",
+    proximityNote: "4 min to Riverside Boulevard",
   },
   {
     id: "aria-residences",
@@ -140,6 +156,14 @@ export const PROPERTIES: Property[] = [
     listed: "Listed 6 days ago",
     yearBuilt: "2023",
     lot: "N/A (High-Rise)",
+    coordinates: "34°04'N  118°15'W",
+    elevation: "1,142 FT",
+    district: "DISTRICT I — PLATINUM QUARTER",
+    siteArea: "614 M²",
+    primaryMaterial: "Reflective glass · Brushed stainless · Italian marble",
+    architecturalStyle: "High-Rise Luxury Contemporary",
+    orientation: "360° panoramic upper floors",
+    proximityNote: "Direct access to Platinum Avenue",
   },
   {
     id: "the-ellison",
@@ -176,6 +200,14 @@ export const PROPERTIES: Property[] = [
     listed: "Preview available soon",
     yearBuilt: "2025 (Est.)",
     lot: "7.1 acres",
+    coordinates: "34°09'N  117°58'W",
+    elevation: "1,960 FT",
+    district: "DISTRICT V — NORTH RIDGE ESTATES",
+    siteArea: "28,734 M²",
+    primaryMaterial: "Limestone · Wrought iron · Hand-hewn timber",
+    architecturalStyle: "Contemporary English Manor",
+    orientation: "North-facing, mountain and valley views",
+    proximityNote: "9 min to Lakeview Village",
   },
   {
     id: "park-meridian",
@@ -212,6 +244,14 @@ export const PROPERTIES: Property[] = [
     listed: "Listed 2 months ago",
     yearBuilt: "2022–2023",
     lot: "0.08–0.12 acres",
+    coordinates: "34°01'N  118°17'W",
+    elevation: "340 FT",
+    district: "DISTRICT III — GREENWAY COMMONS",
+    siteArea: "364–485 M²",
+    primaryMaterial: "Board-formed concrete · Reclaimed oak · Bronze hardware",
+    architecturalStyle: "Urban Contemporary",
+    orientation: "East-facing courtyard gardens",
+    proximityNote: "2 min walk to Greenway Park",
   },
   {
     id: "solara-villas",
@@ -248,6 +288,14 @@ export const PROPERTIES: Property[] = [
     listed: "Listed 1 week ago",
     yearBuilt: "2025–2026 (Est.)",
     lot: "0.28–0.55 acres",
+    coordinates: "33°56'N  118°26'W",
+    elevation: "SEA LEVEL",
+    district: "DISTRICT VI — SUNCOAST WATERFRONT",
+    siteArea: "1,133–2,226 M²",
+    primaryMaterial: "Coral stone · Teak · Hurricane glass",
+    architecturalStyle: "Mediterranean Contemporary",
+    orientation: "Due west, Pacific Ocean frontage",
+    proximityNote: "Direct private beach access",
   },
   {
     id: "haven-ridge",
@@ -284,5 +332,13 @@ export const PROPERTIES: Property[] = [
     listed: "Listed 4 months ago",
     yearBuilt: "2017 (Renovated 2023)",
     lot: "1.2 acres",
+    coordinates: "34°17'N  118°04'W",
+    elevation: "2,400 FT",
+    district: "DISTRICT IV — HILLTOP RESERVE",
+    siteArea: "4,856 M²",
+    primaryMaterial: "Fire-rated composite · Ipe wood · Steel",
+    architecturalStyle: "Mountain Modern",
+    orientation: "270° south & westward, ridge to ocean",
+    proximityNote: "Trail access to Summit Reserve",
   },
 ];
