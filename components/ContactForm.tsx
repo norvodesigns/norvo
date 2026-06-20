@@ -1,15 +1,14 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { motion, useReducedMotion } from "motion/react";
 import { submitContact, type ContactResult } from "@/app/contact/actions";
+import SubmitSuccess from "@/components/SubmitSuccess";
 
 const inputCls =
   "w-full rounded-lg border border-black/15 px-4 py-3 text-sm outline-none transition focus:border-[#0D7A7A] focus:ring-2 focus:ring-[#0D7A7A]/20";
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export default function ContactForm() {
-  const reduce = useReducedMotion();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
@@ -36,29 +35,24 @@ export default function ContactForm() {
     startTransition(async () => {
       const res = await submitContact(fd);
       setResult(res);
-      if (res.ok) setDone(true);
+      if (res.ok) {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+        setDone(true);
+      }
     });
   }
 
   if (done) {
     return (
-      <motion.div
-        initial={reduce ? false : { opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="rounded-2xl border border-black/10 p-10 text-center"
-      >
-        <div
-          className="mx-auto mb-6 flex h-14 w-14 items-center justify-center rounded-full text-2xl text-white"
-          style={{ background: "linear-gradient(120deg,#0D7A7A,#D9A441)" }}
-        >
-          ✓
-        </div>
-        <h2 className="font-display text-2xl font-light">Message sent — thank you.</h2>
-        <p className="mx-auto mt-3 max-w-md text-black/55">
-          We&apos;ll get back to you at <span className="text-black/80">{email}</span> within 1–2
-          business days.
-        </p>
-      </motion.div>
+      <SubmitSuccess
+        heading="Message sent — thank you."
+        body={
+          <>
+            We&apos;ll get back to you at{" "}
+            <span className="text-black/80">{email}</span> within 1–2 business days.
+          </>
+        }
+      />
     );
   }
 

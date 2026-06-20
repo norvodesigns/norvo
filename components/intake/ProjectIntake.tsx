@@ -3,6 +3,7 @@
 import { useEffect, useState, useTransition } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { submitBrief, type SubmitResult } from "@/app/start/actions";
+import SubmitSuccess from "@/components/SubmitSuccess";
 import {
   type Answers,
   emptyAnswers,
@@ -104,6 +105,7 @@ export default function ProjectIntake() {
       const res = await submitBrief(fd);
       setResult(res);
       if (res.ok) {
+        window.scrollTo({ top: 0, behavior: "smooth" });
         setDone(true);
         try {
           localStorage.removeItem(STORAGE_KEY);
@@ -149,24 +151,16 @@ export default function ProjectIntake() {
   // ── success screen ─────────────────────────────────────────────
   if (done) {
     return (
-      <motion.div
-        initial={reduce ? false : { opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="rounded-2xl border border-black/10 p-10 text-center"
-      >
-        <div
-          className="mx-auto mb-6 flex h-14 w-14 items-center justify-center rounded-full text-2xl text-white"
-          style={{ background: "linear-gradient(120deg,#0D7A7A,#D9A441)" }}
-        >
-          ✓
-        </div>
-        <h2 className="font-display text-2xl font-light">Brief received — thank you.</h2>
-        <p className="mx-auto mt-3 max-w-md text-black/55">
-          We'll read through everything and get back to you at{" "}
-          <span className="text-black/80">{answers.email}</span> within 1–2 business days with
-          next steps.
-        </p>
-      </motion.div>
+      <SubmitSuccess
+        heading="Brief received — thank you."
+        body={
+          <>
+            We&apos;ll read through everything and get back to you at{" "}
+            <span className="text-black/80">{answers.email}</span> within 1–2 business days with
+            next steps.
+          </>
+        }
+      />
     );
   }
 
