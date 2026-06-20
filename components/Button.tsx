@@ -107,24 +107,23 @@ export default function Button({
 
   const sharedProps = {
     onPointerEnter: (e: React.PointerEvent) => {
-      if (e.pointerType === "touch") return;
+      if (disabled || e.pointerType === "touch") return;
       if (Date.now() - lastTouchRef.current < 600) return;
       setOrigin(e.clientX, e.clientY); setHover(true);
     },
-    onPointerMove: (e: React.PointerEvent) => { if (e.pointerType !== "touch") setTilt(e.clientX, e.clientY); },
+    onPointerMove: (e: React.PointerEvent) => { if (!disabled && e.pointerType !== "touch") setTilt(e.clientX, e.clientY); },
     // A touch tap "sticks" like a held desktop hover: keep the fill engaged
     // after the tap. Only a real mouse leaving — or a cancelled gesture such as
     // a scroll — turns it back off.
     onPointerLeave: (e: React.PointerEvent) => { if (e.pointerType !== "touch") { setHover(false); resetTilt(); } },
     onPointerCancel: () => { setHover(false); resetTilt(); },
     onPointerDown: (e: React.PointerEvent) => {
-      if (e.pointerType === "touch") {
-        lastTouchRef.current = Date.now();
-        setOrigin(e.clientX, e.clientY); setHover(true);
-      }
+      if (disabled || e.pointerType !== "touch") return;
+      lastTouchRef.current = Date.now();
+      setOrigin(e.clientX, e.clientY); setHover(true);
     },
-    whileHover: { y: -2 },
-    whileTap: { scale: 0.94 },
+    whileHover: disabled ? {} : { y: -2 },
+    whileTap: disabled ? {} : { scale: 0.94 },
     transition: { type: "spring", stiffness: 420, damping: 22 },
     className: `group relative inline-flex items-center justify-center overflow-hidden rounded-full text-sm font-medium ${pad} ${
       primary
