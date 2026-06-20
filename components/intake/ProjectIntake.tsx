@@ -4,6 +4,7 @@ import { useEffect, useState, useTransition } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { submitBrief, type SubmitResult } from "@/app/start/actions";
 import SubmitSuccess from "@/components/SubmitSuccess";
+import Button from "@/components/Button";
 import {
   type Answers,
   emptyAnswers,
@@ -474,15 +475,9 @@ export default function ProjectIntake() {
             </button>
           </div>
         ) : (
-          <button
-            type="button"
-            onClick={submit}
-            disabled={pending}
-            className="rounded-full px-7 py-3 text-sm font-medium text-white transition disabled:opacity-50"
-            style={{ background: "linear-gradient(120deg,#0D7A7A,#D9A441)" }}
-          >
+          <Button onClick={submit} disabled={pending} noTilt>
             {pending ? "Sending…" : "Send my brief"}
-          </button>
+          </Button>
         )}
       </div>
 

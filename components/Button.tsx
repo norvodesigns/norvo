@@ -6,7 +6,7 @@ import { motion, useMotionValue, useSpring, useTransform, useReducedMotion, useI
 import { useDeviceTilt } from "./DeviceTilt";
 
 type Props = {
-  href: string;
+  href?: string;
   children: React.ReactNode;
   variant?: "primary" | "secondary" | "blue";
   size?: "sm" | "md";
@@ -16,6 +16,8 @@ type Props = {
   onClick?: () => void;
   /** disable the 3D tilt (e.g. inside an already-tilting container) */
   noTilt?: boolean;
+  type?: "button" | "submit";
+  disabled?: boolean;
 };
 
 export default function Button({
@@ -28,8 +30,10 @@ export default function Button({
   className = "",
   onClick,
   noTilt = false,
+  type = "button",
+  disabled = false,
 }: Props) {
-  const ref = useRef<HTMLAnchorElement>(null);
+  const ref = useRef<HTMLElement>(null);
   const lastTouchRef = useRef(0);
   const [hover, setHover] = useState(false);
   const router = useRouter();
@@ -101,48 +105,37 @@ export default function Button({
   const hoverBg   = (primary || isBlue) ? "#ffffff" : grad;
   const hoverColor = (primary || isBlue) ? "#0D7A7A" : "#ffffff";
 
-  const isExternal = href.startsWith("http");
-
-  return (
-    <motion.a
-      ref={ref}
-      href={href}
-      target={isExternal ? "_blank" : undefined}
-      rel={isExternal ? "noopener noreferrer" : undefined}
-      onClick={(e) => {
-        if (!isExternal) {
-          e.preventDefault();
-          router.push(href);
-        }
-        onClick?.();
-      }}
-      onPointerEnter={(e) => {
-        if (e.pointerType === "touch") return;
-        if (Date.now() - lastTouchRef.current < 600) return;
+  const sharedProps = {
+    onPointerEnter: (e: React.PointerEvent) => {
+      if (e.pointerType === "touch") return;
+      if (Date.now() - lastTouchRef.current < 600) return;
+      setOrigin(e.clientX, e.clientY); setHover(true);
+    },
+    onPointerMove: (e: React.PointerEvent) => { if (e.pointerType !== "touch") setTilt(e.clientX, e.clientY); },
+    // A touch tap "sticks" like a held desktop hover: keep the fill engaged
+    // after the tap. Only a real mouse leaving — or a cancelled gesture such as
+    // a scroll — turns it back off.
+    onPointerLeave: (e: React.PointerEvent) => { if (e.pointerType !== "touch") { setHover(false); resetTilt(); } },
+    onPointerCancel: () => { setHover(false); resetTilt(); },
+    onPointerDown: (e: React.PointerEvent) => {
+      if (e.pointerType === "touch") {
+        lastTouchRef.current = Date.now();
         setOrigin(e.clientX, e.clientY); setHover(true);
-      }}
-      onPointerMove={(e) => { if (e.pointerType !== "touch") setTilt(e.clientX, e.clientY); }}
-      // A touch tap "sticks" like a held desktop hover: keep the fill engaged
-      // after the tap. Only a real mouse leaving — or a cancelled gesture such as
-      // a scroll — turns it back off.
-      onPointerLeave={(e) => { if (e.pointerType !== "touch") { setHover(false); resetTilt(); } }}
-      onPointerCancel={() => { setHover(false); resetTilt(); }}
-      onPointerDown={(e) => {
-        if (e.pointerType === "touch") {
-          lastTouchRef.current = Date.now();
-          setOrigin(e.clientX, e.clientY); setHover(true);
-        }
-      }}
-      whileHover={{ y: -2 }}
-      whileTap={{ scale: 0.94 }}
-      transition={{ type: "spring", stiffness: 420, damping: 22 }}
-      className={`group relative inline-flex items-center justify-center overflow-hidden rounded-full text-sm font-medium ${pad} ${
-        primary
-          ? "shadow-lg shadow-teal-600/25 hover:shadow-xl hover:shadow-teal-600/30"
-          : dark ? "border border-white/[0.18]" : "border border-black/15"
-      } ${className}`}
-      style={{ background: baseBg, rotateX, rotateY, transformPerspective: 600, "--x": "50%", "--y": "50%" } as React.CSSProperties}
-    >
+      }
+    },
+    whileHover: { y: -2 },
+    whileTap: { scale: 0.94 },
+    transition: { type: "spring", stiffness: 420, damping: 22 },
+    className: `group relative inline-flex items-center justify-center overflow-hidden rounded-full text-sm font-medium ${pad} ${
+      primary
+        ? "shadow-lg shadow-teal-600/25 hover:shadow-xl hover:shadow-teal-600/30"
+        : dark ? "border border-white/[0.18]" : "border border-black/15"
+    } disabled:cursor-not-allowed disabled:opacity-40 ${className}`,
+    style: { background: baseBg, rotateX, rotateY, transformPerspective: 600, "--x": "50%", "--y": "50%" } as React.CSSProperties,
+  };
+
+  const inner = (
+    <>
       <span className="relative z-0 inline-flex items-center gap-2 whitespace-nowrap" style={{ color: baseColor }}>
         {children}
         {withArrow && <span className="transition-transform duration-300 group-hover:translate-x-1">→</span>}
@@ -163,6 +156,42 @@ export default function Button({
       </span>
 
       <span className="pointer-events-none absolute -left-1/3 top-0 z-20 h-full w-1/3 -skew-x-12 bg-white/30 blur-md transition-[left] duration-700 ease-out group-hover:left-full" />
-    </motion.a>
+    </>
+  );
+
+  // sharedProps event handlers are compatible with both element types at runtime;
+  // cast avoids TypeScript's element-specific pointer-event generics.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const spread = sharedProps as any;
+
+  if (href) {
+    const isExternal = href.startsWith("http");
+    return (
+      <motion.a
+        ref={ref as React.RefObject<HTMLAnchorElement>}
+        href={href}
+        target={isExternal ? "_blank" : undefined}
+        rel={isExternal ? "noopener noreferrer" : undefined}
+        onClick={(e) => {
+          if (!isExternal) { e.preventDefault(); router.push(href); }
+          onClick?.();
+        }}
+        {...spread}
+      >
+        {inner}
+      </motion.a>
+    );
+  }
+
+  return (
+    <motion.button
+      ref={ref as React.RefObject<HTMLButtonElement>}
+      type={type}
+      disabled={disabled}
+      onClick={onClick}
+      {...spread}
+    >
+      {inner}
+    </motion.button>
   );
 }

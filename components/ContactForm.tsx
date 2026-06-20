@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { submitContact, type ContactResult } from "@/app/contact/actions";
 import SubmitSuccess from "@/components/SubmitSuccess";
+import Button from "@/components/Button";
 
 const inputCls =
   "w-full rounded-lg border border-black/15 px-4 py-3 text-sm outline-none transition focus:border-[#0D7A7A] focus:ring-2 focus:ring-[#0D7A7A]/20";
@@ -102,14 +103,9 @@ export default function ContactForm() {
 
       <div className="flex items-center justify-between border-t border-black/5 pt-6">
         <p className="text-xs text-black/35">We&apos;ll never share your details.</p>
-        <button
-          type="submit"
-          disabled={!valid || pending}
-          className="rounded-full px-7 py-3 text-sm font-medium text-white transition disabled:cursor-not-allowed disabled:opacity-40"
-          style={{ background: "linear-gradient(120deg,#0D7A7A,#D9A441)" }}
-        >
+        <Button type="submit" disabled={!valid || pending} noTilt>
           {pending ? "Sending…" : "Send message"}
-        </button>
+        </Button>
       </div>
     </form>
   );
