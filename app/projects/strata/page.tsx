@@ -91,7 +91,13 @@ export default function StrataPage() {
   }, []);
 
   return (
-    <div style={{ position: "fixed", inset: 0, zIndex: 500, background: G.black }}>
+    <div style={{
+      position: "fixed", inset: "6px", zIndex: 500,
+      background: G.black,
+      borderRadius: 16,
+      overflow: "hidden",
+      boxShadow: "0 0 0 1px rgba(255,255,255,0.05), 0 32px 80px rgba(0,0,0,0.72)",
+    }}>
       {/* WebGL atmosphere — sits beneath everything, persists across view changes */}
       <div style={{ position: "absolute", inset: 0, zIndex: 0 }}>
         <AtmosphereCanvas lookRef={lookRef} scrollRafRef={scrollRafRef} />
