@@ -1,144 +1,339 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
+import {
+  motion, AnimatePresence, useTransform,
+  useMotionValue, useSpring, useReducedMotion, useInView,
+} from "motion/react";
+import { useRouter } from "next/navigation";
+import dynamic from "next/dynamic";
+import { useDeviceTilt } from "@/components/DeviceTilt";
+
+import { G, ease } from "./constants";
+import type { Route } from "./types";
+import { useAuroraScroll } from "./hooks/useAuroraScroll";
+import AuroraCursor from "./cursor/AuroraCursor";
+import HomeView from "./views/HomeView";
+import VoyagesView from "./views/VoyagesView";
+import VoyageDetailView from "./views/VoyageDetailView";
+import FleetView from "./views/FleetView";
+import ContactView from "./views/ContactView";
+
+const AuroraBackground = dynamic(
+  () => import("./webgl/AuroraBackground"),
+  { ssr: false }
+);
+
+const NAV_LINKS: { label: string; route: Route }[] = [
+  { label: "Voyages", route: { view: "voyages" } },
+  { label: "Fleet",   route: { view: "fleet" } },
+  { label: "Contact", route: { view: "contact" } },
+];
+
+function routeKey(r: Route): string {
+  return r.view === "voyage" ? `voyage-${r.id}` : r.view;
+}
 
 export default function AuroraPage() {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [route, setRoute] = useState<Route>({ view: "home" });
+  const containerRef = useRef<HTMLDivElement>(null);
+  const { scrollY, scrollYSmooth } = useAuroraScroll(containerRef);
+
+  const lookRef      = useRef({ x: 0, y: 0 });
+  const scrollRafRef = useRef(0);
+
+  // Bridge scrollY to scrollRafRef for the WebGL shader
+  useEffect(() => {
+    return scrollY.on("change", v => {
+      const el = containerRef.current;
+      const max = el ? Math.max(el.scrollHeight - el.clientHeight, 1) : 1;
+      scrollRafRef.current = v / max;
+    });
+  }, [scrollY]);
 
   useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    let w = 0, h = 0;
-    const resize = () => {
-      w = window.innerWidth; h = window.innerHeight;
-      canvas.width = w * dpr; canvas.height = h * dpr;
-      canvas.style.width = w + "px"; canvas.style.height = h + "px";
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const onMove = (e: MouseEvent) => {
+      lookRef.current.x = (e.clientX / window.innerWidth)  * 2 - 1;
+      lookRef.current.y = -((e.clientY / window.innerHeight) * 2 - 1);
     };
-    resize();
-    window.addEventListener("resize", resize);
+    window.addEventListener("mousemove", onMove, { passive: true });
+    return () => window.removeEventListener("mousemove", onMove);
+  }, []);
 
-    const mouse = { x: w / 2, y: h / 2 };
-    window.addEventListener("mousemove", (e) => { mouse.x = e.clientX; mouse.y = e.clientY; });
-    window.addEventListener("touchmove", (e) => {
-      if (e.touches[0]) { mouse.x = e.touches[0].clientX; mouse.y = e.touches[0].clientY; }
-    }, { passive: true });
+  const tilt = useDeviceTilt();
+  useEffect(() => {
+    if (!tilt?.enabled) return;
+    const ux = tilt.tiltX.on("change", v => { lookRef.current.x =  v; });
+    const uy = tilt.tiltY.on("change", v => { lookRef.current.y = -v; });
+    return () => { ux(); uy(); };
+  }, [tilt]);
 
-    // Each blob tracks its own smoothed position
-    type Blob = {
-      baseX: number; baseY: number;
-      cx: number; cy: number; // current smoothed position
-      r: number;
-      rgb: [number, number, number];
-      phase: number; speed: number; amp: number;
-    };
+  const navigate = (r: Route) => {
+    containerRef.current?.scrollTo({ top: 0, behavior: "instant" });
+    setRoute(r);
+  };
 
-    const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
+  // Nav becomes frosted when scrolled
+  const navBg   = useTransform(scrollY, [0, 60], ["rgba(2,2,9,0)",   "rgba(6,6,15,0.88)"]);
+  const navBlur = useTransform(scrollY, [0, 60], ["blur(0px)", "blur(14px)"]);
 
-    const blobs: Blob[] = [
-      { baseX: 0.28, baseY: 0.38, cx: 0, cy: 0, r: 0.44, rgb: [47, 107, 237],  phase: 0,   speed: 0.28, amp: 0.10 },
-      { baseX: 0.72, baseY: 0.62, cx: 0, cy: 0, r: 0.48, rgb: [163, 27, 191],  phase: 1.3, speed: 0.22, amp: 0.09 },
-      { baseX: 0.50, baseY: 0.25, cx: 0, cy: 0, r: 0.38, rgb: [123, 47, 247],  phase: 2.5, speed: 0.33, amp: 0.11 },
-      { baseX: 0.18, baseY: 0.72, cx: 0, cy: 0, r: 0.36, rgb: [47, 107, 237],  phase: 3.7, speed: 0.26, amp: 0.08 },
-      { baseX: 0.82, baseY: 0.28, cx: 0, cy: 0, r: 0.40, rgb: [163, 27, 191],  phase: 0.9, speed: 0.30, amp: 0.10 },
-      { baseX: 0.50, baseY: 0.80, cx: 0, cy: 0, r: 0.37, rgb: [80, 60, 220],   phase: 1.7, speed: 0.24, amp: 0.09 },
-      { baseX: 0.35, baseY: 0.60, cx: 0, cy: 0, r: 0.32, rgb: [47, 180, 220],  phase: 4.1, speed: 0.29, amp: 0.07 },
-    ];
-
-    // Init cx/cy
-    blobs.forEach(b => { b.cx = b.baseX * w; b.cy = b.baseY * h; });
-
-    let t = 0;
-    let raf = 0;
-
-    const frame = () => {
-      t += 0.007;
-
-      // Fade to background each frame (trail effect)
-      ctx.fillStyle = "rgba(6,0,14,0.18)";
-      ctx.fillRect(0, 0, w, h);
-
-      blobs.forEach((blob) => {
-        // Target: organic drift
-        const tx = (blob.baseX + Math.sin(t * blob.speed + blob.phase) * blob.amp) * w;
-        const ty = (blob.baseY + Math.cos(t * blob.speed * 0.85 + blob.phase) * blob.amp * 0.8) * h;
-
-        // Cursor pushes blobs away gently
-        const dx = tx - mouse.x;
-        const dy = ty - mouse.y;
-        const dist = Math.hypot(dx, dy) || 1;
-        const pushR = Math.min(w, h) * 0.45;
-        const strength = Math.max(0, 1 - dist / pushR) * 55;
-        const pushX = (dx / dist) * strength;
-        const pushY = (dy / dist) * strength;
-
-        // Smooth toward target
-        blob.cx = lerp(blob.cx, tx + pushX, 0.04);
-        blob.cy = lerp(blob.cy, ty + pushY, 0.04);
-
-        const radius = blob.r * Math.min(w, h) * 0.75;
-        const [r, g, b] = blob.rgb;
-        const grad = ctx.createRadialGradient(blob.cx, blob.cy, 0, blob.cx, blob.cy, radius);
-        grad.addColorStop(0,   `rgba(${r},${g},${b},0.60)`);
-        grad.addColorStop(0.45,`rgba(${r},${g},${b},0.22)`);
-        grad.addColorStop(1,   `rgba(${r},${g},${b},0)`);
-
-        ctx.fillStyle = grad;
-        ctx.beginPath();
-        ctx.arc(blob.cx, blob.cy, radius, 0, Math.PI * 2);
-        ctx.fill();
-      });
-
-      raf = requestAnimationFrame(frame);
-    };
-    // Initial clear
-    ctx.fillStyle = "#06000e";
-    ctx.fillRect(0, 0, w, h);
-    raf = requestAnimationFrame(frame);
-
-    return () => {
-      cancelAnimationFrame(raf);
-      window.removeEventListener("resize", resize);
-    };
+  useEffect(() => {
+    const el = containerRef.current;
+    if (el) el.style.cssText += ";scrollbar-width:none;-ms-overflow-style:none;";
   }, []);
 
   return (
-    <div className="relative h-screen w-screen overflow-hidden">
-      <canvas ref={canvasRef} className="absolute inset-0" />
-
-      {/* UI overlay */}
-      <div className="pointer-events-none absolute inset-0 flex flex-col justify-between p-7 sm:p-10">
-        {/* top bar */}
-        <div className="flex items-start justify-between">
-          <div>
-            <p className="text-[0.65rem] uppercase tracking-[0.3em] text-white/35">
-              Norvo — Interactive Concept
-            </p>
-            <h1 className="mt-0.5 font-display text-3xl font-light text-white/90 sm:text-4xl">
-              Aurora
-            </h1>
-          </div>
-          <a
-            href="/projects"
-            className="pointer-events-auto rounded-full border border-white/20 px-4 py-2 text-[0.65rem] uppercase tracking-[0.25em] text-white/45 backdrop-blur-sm transition-colors duration-300 hover:border-white/40 hover:text-white/80"
-          >
-            ← Projects
-          </a>
-        </div>
-
-        {/* bottom info */}
-        <div className="max-w-sm">
-          <p className="text-sm text-white/40">Move your cursor — blobs drift away from it</p>
-          <p className="mt-1 text-xs leading-relaxed text-white/20">
-            A living gradient field built entirely on canvas, running at 60fps with no GPU shaders.
-            Proof that a background can feel alive without slowing anything down.
-          </p>
-        </div>
+    <div style={{
+      position: "fixed", inset: "6px", zIndex: 500,
+      background: G.void,
+      borderRadius: 16,
+      overflow: "hidden",
+      boxShadow: "0 0 0 1px rgba(255,255,255,0.04), 0 32px 80px rgba(0,0,0,0.80)",
+    }}>
+      {/* WebGL deep-space background — persists across route changes */}
+      <div style={{ position: "absolute", inset: 0, zIndex: 0 }}>
+        <AuroraBackground lookRef={lookRef} scrollRafRef={scrollRafRef} />
       </div>
+
+      {/* Scroll container */}
+      <div
+        ref={containerRef}
+        style={{
+          position: "relative", zIndex: 10,
+          height: "100%", overflowY: "auto",
+          overflowX: "hidden",
+        }}
+      >
+        {/* ── Navigation ────────────────────────────────────────── */}
+        <motion.nav
+          style={{
+            position: "sticky", top: 0, zIndex: 100,
+            display: "flex", alignItems: "center", justifyContent: "space-between",
+            padding: "0 1.5rem",
+            height: 64,
+            background: navBg,
+            backdropFilter: navBlur,
+            WebkitBackdropFilter: navBlur,
+            borderBottom: "1px solid rgba(68,102,255,0.07)",
+          }}
+        >
+          {/* AURORA wordmark */}
+          <button
+            onClick={() => navigate({ view: "home" })}
+            style={{
+              background: "none", border: "none", cursor: "pointer", padding: 0,
+              fontFamily: "var(--font-display)",
+              fontWeight: 200,
+              fontSize: "1.1rem",
+              letterSpacing: "0.30em",
+              color: G.white,
+            }}
+          >
+            AURORA
+          </button>
+
+          {/* Nav links */}
+          <div style={{ display: "flex", alignItems: "center", gap: "2rem" }}>
+            {NAV_LINKS.map(({ label, route: r }) => {
+              const active = route.view === r.view;
+              return (
+                <button
+                  key={label}
+                  onClick={() => navigate(r)}
+                  style={{
+                    background: "none", border: "none", cursor: "pointer", padding: 0,
+                    fontSize: "0.55rem",
+                    letterSpacing: "0.22em",
+                    color: active ? G.glowSoft : "rgba(224,224,244,0.42)",
+                    transition: "color 0.25s ease",
+                    fontFamily: "inherit",
+                  }}
+                  onMouseEnter={e => { if (!active) (e.currentTarget as HTMLButtonElement).style.color = "rgba(224,224,244,0.80)"; }}
+                  onMouseLeave={e => { if (!active) (e.currentTarget as HTMLButtonElement).style.color = "rgba(224,224,244,0.42)"; }}
+                >
+                  {label.toUpperCase()}
+                </button>
+              );
+            })}
+          </div>
+        </motion.nav>
+
+        {/* ── View router ───────────────────────────────────────── */}
+        <AnimatePresence mode="wait">
+          <div key={routeKey(route)}>
+            {route.view === "home" && (
+              <HomeView
+                navigate={navigate}
+                containerRef={containerRef}
+                scrollYSmooth={scrollYSmooth}
+              />
+            )}
+            {route.view === "voyages" && (
+              <VoyagesView
+                navigate={navigate}
+                containerRef={containerRef}
+              />
+            )}
+            {route.view === "voyage" && (
+              <VoyageDetailView
+                id={route.id}
+                navigate={navigate}
+                containerRef={containerRef}
+              />
+            )}
+            {route.view === "fleet" && (
+              <FleetView navigate={navigate} />
+            )}
+            {route.view === "contact" && (
+              <ContactView navigate={navigate} />
+            )}
+          </div>
+        </AnimatePresence>
+      </div>
+
+      {/* Custom cursor — desktop only */}
+      <AuroraCursor />
+
+      {/* Exit button */}
+      <ExitButton />
     </div>
+  );
+}
+
+// ── Exit button — white pill, same DNA as Strata ──────────────────────────────
+function ExitButton() {
+  const router       = useRouter();
+  const ref          = useRef<HTMLAnchorElement>(null);
+  const wrapRef      = useRef<HTMLDivElement>(null);
+  const reduce       = useReducedMotion();
+  const tilt         = useDeviceTilt();
+  const inView       = useInView(wrapRef);
+  const [hover, setHover]       = useState(false);
+  const [isDesktop, setDesktop] = useState(false);
+  const lastTouchRef = useRef(0);
+
+  useEffect(() => {
+    setDesktop(window.matchMedia("(min-width: 768px)").matches);
+  }, []);
+
+  const px  = useMotionValue(0);
+  const py  = useMotionValue(0);
+  const tsx = useSpring(px, { stiffness: 230, damping: 22, mass: 0.5 });
+  const tsy = useSpring(py, { stiffness: 230, damping: 22, mass: 0.5 });
+  const rotateX = useTransform(tsy, v => -v * 22);
+  const rotateY = useTransform(tsx, v =>  v * 22);
+
+  useEffect(() => {
+    if (!tilt?.enabled || !inView) return;
+    const apply = () => { px.set(tilt.tiltX.get() * 0.5); py.set(tilt.tiltY.get() * 0.5); };
+    apply();
+    const ux = tilt.tiltX.on("change", apply);
+    const uy = tilt.tiltY.on("change", apply);
+    return () => { ux(); uy(); px.set(0); py.set(0); };
+  }, [tilt, inView, px, py]);
+
+  const setOrigin = (clientX: number, clientY: number) => {
+    const el = ref.current;
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    el.style.setProperty("--x", `${((clientX - r.left)  / r.width)  * 100}%`);
+    el.style.setProperty("--y", `${((clientY - r.top)   / r.height) * 100}%`);
+  };
+
+  const setTiltFromPointer = (clientX: number, clientY: number) => {
+    if (reduce) return;
+    const r = ref.current?.getBoundingClientRect();
+    if (!r) return;
+    px.set((clientX - r.left) / r.width  - 0.5);
+    py.set((clientY - r.top)  / r.height - 0.5);
+  };
+  const resetTilt = () => { px.set(0); py.set(0); };
+
+  const pad = isDesktop ? "0.8rem 2.25rem" : "0.65rem 1.75rem";
+  const fz  = isDesktop ? "0.75rem"        : "0.65rem";
+
+  return (
+    <motion.div
+      ref={wrapRef}
+      initial={reduce ? false : { opacity: 0, y: 24, scale: 0.88 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{ delay: 1.1, duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+      style={{ position: "fixed", bottom: 24, left: 24, zIndex: 600 }}
+    >
+      <motion.a
+        ref={ref}
+        href="/projects"
+        onClick={e => { e.preventDefault(); router.push("/projects"); }}
+        onPointerEnter={e => {
+          if (e.pointerType === "touch") return;
+          if (Date.now() - lastTouchRef.current < 600) return;
+          setOrigin(e.clientX, e.clientY); setHover(true);
+        }}
+        onPointerMove={e => { if (e.pointerType !== "touch") setTiltFromPointer(e.clientX, e.clientY); }}
+        onPointerLeave={e => { if (e.pointerType !== "touch") { setHover(false); resetTilt(); } }}
+        onPointerCancel={() => { setHover(false); resetTilt(); }}
+        onPointerDown={e => {
+          if (e.pointerType !== "touch") return;
+          lastTouchRef.current = Date.now();
+          setOrigin(e.clientX, e.clientY); setHover(true);
+        }}
+        whileHover={reduce ? {} : { y: -2 }}
+        whileTap={reduce   ? {} : { scale: 0.94 }}
+        transition={{ type: "spring", stiffness: 420, damping: 22 }}
+        style={{
+          display: "inline-flex", alignItems: "center", justifyContent: "center",
+          padding: pad,
+          background: "#ffffff",
+          borderRadius: 9999,
+          overflow: "hidden",
+          textDecoration: "none",
+          boxShadow: "0 6px 28px rgba(0,0,0,0.42)",
+          rotateX, rotateY,
+          transformPerspective: 600,
+          "--x": "50%",
+          "--y": "50%",
+        } as React.CSSProperties}
+      >
+        <span style={{
+          position: "relative", zIndex: 0,
+          display: "inline-flex", alignItems: "center", gap: 6,
+          color: "#020209", fontSize: fz, fontWeight: 500,
+          letterSpacing: "0.18em", fontFamily: "inherit", whiteSpace: "nowrap",
+        }}>
+          ← EXIT
+        </span>
+
+        {/* Ripple fill */}
+        <span
+          aria-hidden
+          style={{
+            position: "absolute", inset: 0, zIndex: 10,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            background: "#020209",
+            clipPath: hover ? "circle(150% at var(--x) var(--y))" : "circle(0% at var(--x) var(--y))",
+            transition: "clip-path 500ms ease-out",
+          }}
+        >
+          <span style={{
+            display: "inline-flex", alignItems: "center", gap: 6,
+            color: "#ffffff", fontSize: fz, fontWeight: 500,
+            letterSpacing: "0.18em", fontFamily: "inherit", whiteSpace: "nowrap",
+          }}>
+            ← EXIT
+          </span>
+        </span>
+
+        {/* Shimmer */}
+        <span aria-hidden style={{
+          pointerEvents: "none", position: "absolute",
+          top: 0, zIndex: 20, height: "100%", width: "33%",
+          left: hover ? "100%" : "-33%",
+          transform: "skewX(-12deg)",
+          background: "rgba(255,255,255,0.30)",
+          filter: "blur(4px)",
+          transition: "left 700ms ease-out",
+        }} />
+      </motion.a>
+    </motion.div>
   );
 }

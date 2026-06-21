@@ -36,8 +36,8 @@ export const PROJECTS: Project[] = [
     name: "Aurora",
     category: "Interactive Concept",
     description:
-      "A living gradient field that stirs under your cursor — proof a background can feel alive without ever dropping a frame.",
-    gradient: "linear-gradient(135deg,#7b2ff7,#a31bbf)",
+      "A luxury private spaceflight brand — from sub-orbital arcs to cislunar transit — built entirely in CSS, SVG, and WebGL. No images.",
+    gradient: "radial-gradient(ellipse at 50% 120%, #1840A8 0%, #040430 45%, #020209 100%)",
     kind: "prototype",
     href: "/projects/aurora",
     featured: true,

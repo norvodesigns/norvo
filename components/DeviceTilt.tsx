@@ -54,6 +54,12 @@ const TILT_RANGE_DEG = 16;
 // Light low-pass on raw sensor data; the per-section springs do the rest.
 const SMOOTH = 0.2;
 
+// Module-level: lives for the JavaScript session (cleared by hard refresh, NOT
+// by client-side navigation). Guards against the provider remounting mid-session
+// (e.g. React StrictMode double-mount, client/server boundary differences between
+// pages) and re-showing the popup after the user has already seen it.
+let _promptShownThisSession = false;
+
 export function DeviceTiltProvider({ children }: { children: React.ReactNode }) {
   const tiltX = useMotionValue(0);
   const tiltY = useMotionValue(0);
@@ -113,14 +119,20 @@ export function DeviceTiltProvider({ children }: { children: React.ReactNode }) 
 
   // Tilt is OFF by default on every load. We deliberately do NOT try to detect an
   // existing OS-level grant (that was unreliable and caused the popup to misfire).
-  // Instead the popup is simply offered on every visit, and the gyro turns on
-  // only when the user taps Enable — which also satisfies iOS's requirement that
-  // requestPermission() be called from a user gesture.
+  // Instead the popup is simply offered once per page session (i.e. on hard
+  // refresh), and the gyro turns on only when the user taps Enable — which also
+  // satisfies iOS's requirement that requestPermission() be called from a user
+  // gesture. The module-level flag prevents the prompt from re-appearing if the
+  // provider remounts mid-session (navigation, StrictMode, etc.).
   useEffect(() => {
+    if (_promptShownThisSession) return;
     const isTouch =
       window.matchMedia?.("(pointer: coarse)").matches ?? "ontouchstart" in window;
     const hasOrientation = "DeviceOrientationEvent" in window;
-    if (isTouch && hasOrientation) setPhase("prompt");
+    if (isTouch && hasOrientation) {
+      setPhase("prompt");
+      _promptShownThisSession = true;
+    }
   }, []);
 
   const enable = async () => {
