@@ -19,7 +19,7 @@ class CanvasBoundary extends Component<{ children: ReactNode }, { err: boolean }
   static getDerivedStateFromError() { return { err: true }; }
   componentDidCatch(e: Error, _: ErrorInfo) { console.warn("[Aurora] WebGL error:", e.message); }
   render() {
-    if (this.state.err) return <div style={{ position: "absolute", inset: 0, background: "#020209" }} />;
+    if (this.state.err) return <div style={{ position: "absolute", inset: 0, background: "#080808" }} />;
     return this.props.children;
   }
 }
@@ -103,48 +103,38 @@ void main() {
   vec2 mp = uMouse * 0.018;
 
   // ── Deep-space background gradient ───────────────────────────────────────
-  vec3 col = mix(vec3(0.010, 0.008, 0.020), vec3(0.006, 0.006, 0.014), vUv.y);
+  vec3 col = mix(vec3(0.032, 0.032, 0.032), vec3(0.006, 0.006, 0.006), vUv.y);
 
-  // ── Nebula wisps ──────────────────────────────────────────────────────────
-  // Blue nebula (upper-left quadrant, slow drift)
-  vec2 np1 = uv * 0.32 + vec2(uTime * 0.006,  uTime * 0.004) + vec2(0.0, 0.5);
+  // ── Near-invisible grey dust wisps ───────────────────────────────────────
+  vec2 np1 = uv * 0.32 + vec2(uTime * 0.006, uTime * 0.004) + vec2(0.0, 0.5);
   float n1 = fbm(np1);
   float n2 = fbm(np1 * 1.5 + vec2(4.4, 2.1));
   float nb = smoothstep(0.42, 0.68, n1) * smoothstep(0.38, 0.62, n2);
-  col += vec3(0.04, 0.06, 0.24) * nb * 0.28;
+  col += vec3(0.06, 0.06, 0.07) * nb * 0.10;
 
-  // Purple-indigo nebula (lower-right, opposite drift)
   vec2 np2 = uv * 0.26 + vec2(-uTime * 0.005, uTime * 0.007) + vec2(3.8, -1.2);
   float n3 = fbm(np2);
-  float np = smoothstep(0.48, 0.72, n3);
-  col += vec3(0.09, 0.03, 0.20) * np * 0.22;
+  col += vec3(0.05, 0.05, 0.06) * smoothstep(0.48, 0.72, n3) * 0.07;
 
-  // Faint silver-white molecular cloud
+  // Faint molecular cloud
   vec2 np3 = uv * 0.18 + vec2(uTime * 0.003, -uTime * 0.003) + vec2(-2.0, 3.0);
   float n4 = fbm(np3);
   float nc = smoothstep(0.52, 0.72, n4) * (1.0 - smoothstep(0.72, 0.90, n4));
-  col += vec3(0.12, 0.12, 0.18) * nc * 0.12;
+  col += vec3(0.08, 0.08, 0.09) * nc * 0.06;
 
   // ── Star layers (near → far, more parallax for nearer stars) ─────────────
-  // Distant dense background stars — no parallax, tiny, dim
+  // Distant dense background stars — pure white, no tinting
   float s0 = starLayer(uv,              350.0, 0.008, 0.016);
-  col += vec3(0.75, 0.80, 1.00) * s0 * 0.55;
+  col += vec3(0.90, 0.90, 0.90) * s0 * 0.55;
 
-  // Mid-range stars — slight parallax
+  // Mid-range stars — pure white
   float s1 = starLayer(uv + mp * 0.35,  130.0, 0.013, 0.020);
-  col += vec3(0.88, 0.92, 1.00) * s1 * 0.78;
+  col += vec3(0.95, 0.95, 0.95) * s1 * 0.78;
 
-  // Nearby bright stars — full parallax, occasional colour tint
+  // Nearby bright stars — full parallax, pure white
   vec2  nuv = uv + mp;
   float s2  = starLayer(nuv, 45.0, 0.022, 0.028);
-  float sh  = hash21(floor(nuv * 45.0));
-  vec3  sc  = mix(vec3(1.00, 1.00, 1.00), mix(vec3(0.70, 0.84, 1.00), vec3(1.00, 0.88, 0.76), step(0.5, sh)), 0.55);
-  col += sc * s2 * 1.05;
-
-  // ── Engine glow (subtle blue-white from below) ────────────────────────────
-  float glow = pow(max(0.0, 1.0 - vUv.y), 5.0) * 0.06;
-  glow += exp(-pow((vUv.x - (0.5 + uMouse.x * 0.04)) * uAspect * 2.4, 2.0)) * pow(max(0.0, 1.0 - vUv.y), 3.0) * 0.04;
-  col += vec3(0.18, 0.28, 1.00) * glow;
+  col += vec3(1.0, 1.0, 1.0) * s2 * 1.05;
 
   // ── Vignette ──────────────────────────────────────────────────────────────
   vec2 vig = vUv * 2.0 - 1.0;
@@ -205,8 +195,7 @@ void main() {
   float d  = length(uv) * 2.0;
   if (d > 1.0) discard;
   float a = pow(1.0 - d, 2.2) * vAlpha;
-  // blend from pure white to soft blue-white
-  vec3  col = mix(vec3(1.0, 1.0, 1.0), vec3(0.74, 0.85, 1.00), vColor * 0.6);
+  vec3  col = vec3(1.0, 1.0, 1.0);
   gl_FragColor = vec4(col, a);
 }`;
 
@@ -343,7 +332,7 @@ export default function AuroraBackground({ lookRef, scrollRafRef }: AuroraBackgr
       {isMobile ? (
         <div style={{
           position: "absolute", inset: 0,
-          background: "radial-gradient(ellipse 100% 60% at 50% 70%, rgba(28,28,96,0.18) 0%, #020209 65%)",
+          background: "#080808",
         }} />
       ) : (
         <CanvasBoundary>

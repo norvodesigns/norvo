@@ -2,14 +2,14 @@
 
 import { useState, useRef, useEffect } from "react";
 import {
-  motion, AnimatePresence, useTransform,
+  motion, useTransform,
   useMotionValue, useSpring, useReducedMotion, useInView,
 } from "motion/react";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import { useDeviceTilt } from "@/components/DeviceTilt";
 
-import { G, ease } from "./constants";
+import { G } from "./constants";
 import type { Route } from "./types";
 import { useAuroraScroll } from "./hooks/useAuroraScroll";
 import AuroraCursor from "./cursor/AuroraCursor";
@@ -18,31 +18,41 @@ import VoyagesView from "./views/VoyagesView";
 import VoyageDetailView from "./views/VoyageDetailView";
 import FleetView from "./views/FleetView";
 import ContactView from "./views/ContactView";
+import { AnimatePresence } from "motion/react";
 
 const AuroraBackground = dynamic(
   () => import("./webgl/AuroraBackground"),
   { ssr: false }
 );
 
-const NAV_LINKS: { label: string; route: Route }[] = [
-  { label: "Voyages", route: { view: "voyages" } },
-  { label: "Fleet",   route: { view: "fleet" } },
-  { label: "Contact", route: { view: "contact" } },
+const NAV_ITEMS: { num: string; label: string; route: Route }[] = [
+  { num: "01", label: "HOME",    route: { view: "home"    } },
+  { num: "02", label: "VOYAGES", route: { view: "voyages" } },
+  { num: "03", label: "FLEET",   route: { view: "fleet"   } },
+  { num: "04", label: "CONTACT", route: { view: "contact" } },
 ];
 
 function routeKey(r: Route): string {
   return r.view === "voyage" ? `voyage-${r.id}` : r.view;
 }
 
+function activeView(r: Route): string {
+  return r.view === "voyage" ? "voyages" : r.view;
+}
+
 export default function AuroraPage() {
   const [route, setRoute] = useState<Route>({ view: "home" });
+  const [isMobile, setIsMobile] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const { scrollY, scrollYSmooth } = useAuroraScroll(containerRef);
 
   const lookRef      = useRef({ x: 0, y: 0 });
   const scrollRafRef = useRef(0);
 
-  // Bridge scrollY to scrollRafRef for the WebGL shader
+  useEffect(() => {
+    setIsMobile(window.matchMedia("(max-width: 767px)").matches);
+  }, []);
+
   useEffect(() => {
     return scrollY.on("change", v => {
       const el = containerRef.current;
@@ -73,14 +83,12 @@ export default function AuroraPage() {
     setRoute(r);
   };
 
-  // Nav becomes frosted when scrolled
-  const navBg   = useTransform(scrollY, [0, 60], ["rgba(2,2,9,0)",   "rgba(6,6,15,0.88)"]);
-  const navBlur = useTransform(scrollY, [0, 60], ["blur(0px)", "blur(14px)"]);
-
   useEffect(() => {
     const el = containerRef.current;
     if (el) el.style.cssText += ";scrollbar-width:none;-ms-overflow-style:none;";
   }, []);
+
+  const current = activeView(route);
 
   return (
     <div style={{
@@ -88,107 +96,188 @@ export default function AuroraPage() {
       background: G.void,
       borderRadius: 16,
       overflow: "hidden",
-      boxShadow: "0 0 0 1px rgba(255,255,255,0.04), 0 32px 80px rgba(0,0,0,0.80)",
+      boxShadow: "0 0 0 1px rgba(255,255,255,0.04), 0 32px 80px rgba(0,0,0,0.85)",
     }}>
-      {/* WebGL deep-space background — persists across route changes */}
+      {/* WebGL starfield — behind everything */}
       <div style={{ position: "absolute", inset: 0, zIndex: 0 }}>
         <AuroraBackground lookRef={lookRef} scrollRafRef={scrollRafRef} />
       </div>
 
-      {/* Scroll container */}
-      <div
-        ref={containerRef}
-        style={{
-          position: "relative", zIndex: 10,
-          height: "100%", overflowY: "auto",
-          overflowX: "hidden",
-        }}
-      >
-        {/* ── Navigation ────────────────────────────────────────── */}
-        <motion.nav
-          style={{
-            position: "sticky", top: 0, zIndex: 100,
-            display: "flex", alignItems: "center", justifyContent: "space-between",
-            padding: "0 1.5rem",
-            height: 64,
-            background: navBg,
-            backdropFilter: navBlur,
-            WebkitBackdropFilter: navBlur,
-            borderBottom: "1px solid rgba(68,102,255,0.07)",
-          }}
-        >
-          {/* AURORA wordmark */}
-          <button
-            onClick={() => navigate({ view: "home" })}
-            style={{
-              background: "none", border: "none", cursor: "pointer", padding: 0,
-              fontFamily: "var(--font-display)",
-              fontWeight: 200,
-              fontSize: "1.1rem",
-              letterSpacing: "0.30em",
-              color: G.white,
-            }}
-          >
-            AURORA
-          </button>
-
-          {/* Nav links */}
-          <div style={{ display: "flex", alignItems: "center", gap: "2rem" }}>
-            {NAV_LINKS.map(({ label, route: r }) => {
-              const active = route.view === r.view;
+      {/* Two-column grid: sidebar | content */}
+      <div style={{
+        position: "relative", zIndex: 10,
+        display: "grid",
+        gridTemplateColumns: isMobile ? "1fr" : "160px 1fr",
+        gridTemplateRows: isMobile ? "1fr 56px" : "1fr",
+        height: "100%",
+      }}>
+        {/* ── Sidebar / bottom tab bar ──────────────────────────────── */}
+        {isMobile ? (
+          // Mobile: bottom tab bar
+          <div style={{
+            gridRow: 2, gridColumn: 1,
+            display: "flex", flexDirection: "row",
+            height: 56,
+            background: "rgba(28,28,30,0.92)",
+            backdropFilter: "blur(16px)",
+            WebkitBackdropFilter: "blur(16px)",
+            borderTop: "1px solid rgba(255,255,255,0.08)",
+          }}>
+            {NAV_ITEMS.map(({ num, label, route: r }) => {
+              const isActive = current === r.view;
               return (
                 <button
-                  key={label}
+                  key={r.view}
                   onClick={() => navigate(r)}
                   style={{
-                    background: "none", border: "none", cursor: "pointer", padding: 0,
-                    fontSize: "0.55rem",
-                    letterSpacing: "0.22em",
-                    color: active ? G.glowSoft : "rgba(224,224,244,0.42)",
-                    transition: "color 0.25s ease",
-                    fontFamily: "inherit",
+                    flex: 1,
+                    display: "flex", flexDirection: "column",
+                    alignItems: "center", justifyContent: "center",
+                    gap: 3,
+                    background: "none", border: "none", cursor: "pointer",
+                    padding: 0,
                   }}
-                  onMouseEnter={e => { if (!active) (e.currentTarget as HTMLButtonElement).style.color = "rgba(224,224,244,0.80)"; }}
-                  onMouseLeave={e => { if (!active) (e.currentTarget as HTMLButtonElement).style.color = "rgba(224,224,244,0.42)"; }}
                 >
-                  {label.toUpperCase()}
+                  <span style={{
+                    fontFamily: "monospace",
+                    fontSize: "0.42rem",
+                    letterSpacing: "0.12em",
+                    color: isActive ? G.ice : G.iron,
+                    transition: "color 0.2s ease",
+                  }}>{num}</span>
+                  <span style={{
+                    fontSize: "0.40rem",
+                    letterSpacing: "0.16em",
+                    color: isActive ? G.white : G.silver,
+                    transition: "color 0.2s ease",
+                  }}>{label}</span>
                 </button>
               );
             })}
           </div>
-        </motion.nav>
+        ) : (
+          // Desktop: vertical sidebar
+          <div style={{
+            gridRow: 1, gridColumn: 1,
+            display: "flex", flexDirection: "column",
+            justifyContent: "space-between",
+            height: "100%",
+            background: "rgba(28,28,30,0.78)",
+            backdropFilter: "blur(14px)",
+            WebkitBackdropFilter: "blur(14px)",
+            borderRight: "1px solid rgba(255,255,255,0.06)",
+          }}>
+            {/* Top: wordmark + nav */}
+            <div>
+              {/* Wordmark */}
+              <div style={{ padding: "1.5rem 1rem 1rem" }}>
+                <button
+                  onClick={() => navigate({ view: "home" })}
+                  style={{
+                    background: "none", border: "none", cursor: "pointer", padding: 0,
+                    fontFamily: "var(--font-display)",
+                    fontWeight: 200,
+                    fontSize: "0.65rem",
+                    letterSpacing: "0.32em",
+                    color: G.white,
+                    display: "block",
+                  }}
+                >
+                  AURORA
+                </button>
+              </div>
+              <div style={{ height: 1, background: "rgba(255,255,255,0.06)", margin: "0 0 0" }} />
 
-        {/* ── View router ───────────────────────────────────────── */}
-        <AnimatePresence mode="wait">
-          <div key={routeKey(route)}>
-            {route.view === "home" && (
-              <HomeView
-                navigate={navigate}
-                containerRef={containerRef}
-                scrollYSmooth={scrollYSmooth}
-              />
-            )}
-            {route.view === "voyages" && (
-              <VoyagesView
-                navigate={navigate}
-                containerRef={containerRef}
-              />
-            )}
-            {route.view === "voyage" && (
-              <VoyageDetailView
-                id={route.id}
-                navigate={navigate}
-                containerRef={containerRef}
-              />
-            )}
-            {route.view === "fleet" && (
-              <FleetView navigate={navigate} />
-            )}
-            {route.view === "contact" && (
-              <ContactView navigate={navigate} />
-            )}
+              {/* Nav items */}
+              <div style={{ paddingTop: "1.5rem" }}>
+                {NAV_ITEMS.map(({ num, label, route: r }) => {
+                  const isActive = current === r.view;
+                  return (
+                    <button
+                      key={r.view}
+                      onClick={() => navigate(r)}
+                      style={{
+                        position: "relative",
+                        width: "100%",
+                        display: "flex", flexDirection: "column", alignItems: "flex-start",
+                        gap: 3,
+                        padding: "0.65rem 0.75rem 0.65rem 1.25rem",
+                        background: "none", border: "none", cursor: "pointer",
+                        textAlign: "left",
+                      }}
+                    >
+                      {/* Active accent bar */}
+                      {isActive && (
+                        <span style={{
+                          position: "absolute", left: 0, top: 0, bottom: 0,
+                          width: 2, background: G.ice,
+                        }} />
+                      )}
+                      <span style={{
+                        fontFamily: "monospace",
+                        fontSize: "0.40rem",
+                        letterSpacing: "0.14em",
+                        color: isActive ? G.ice : G.iron,
+                        transition: "color 0.2s ease",
+                      }}>{num}</span>
+                      <span style={{
+                        fontSize: "0.52rem",
+                        letterSpacing: "0.20em",
+                        color: isActive ? G.white : G.silver,
+                        transition: "color 0.2s ease",
+                      }}>{label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Bottom: build string */}
+            <div style={{ padding: "1rem 1rem 1.25rem" }}>
+              <span style={{
+                fontFamily: "monospace",
+                fontSize: "0.40rem",
+                letterSpacing: "0.16em",
+                color: G.iron,
+              }}>AV.2029</span>
+            </div>
           </div>
-        </AnimatePresence>
+        )}
+
+        {/* ── Main content area ─────────────────────────────────────── */}
+        <div
+          ref={containerRef}
+          style={{
+            gridRow: 1, gridColumn: isMobile ? 1 : 2,
+            height: "100%",
+            overflowY: "auto",
+            overflowX: "hidden",
+          }}
+        >
+          <AnimatePresence mode="wait">
+            <div key={routeKey(route)} style={{ height: "100%" }}>
+              {route.view === "home" && (
+                <HomeView navigate={navigate} containerRef={containerRef} />
+              )}
+              {route.view === "voyages" && (
+                <VoyagesView navigate={navigate} containerRef={containerRef} />
+              )}
+              {route.view === "voyage" && (
+                <VoyageDetailView
+                  id={route.id}
+                  navigate={navigate}
+                  containerRef={containerRef}
+                />
+              )}
+              {route.view === "fleet" && (
+                <FleetView navigate={navigate} />
+              )}
+              {route.view === "contact" && (
+                <ContactView navigate={navigate} />
+              )}
+            </div>
+          </AnimatePresence>
+        </div>
       </div>
 
       {/* Custom cursor — desktop only */}
@@ -200,7 +289,7 @@ export default function AuroraPage() {
   );
 }
 
-// ── Exit button — white pill, same DNA as Strata ──────────────────────────────
+// ── Exit button — white pill ───────────────────────────────────────────────────
 function ExitButton() {
   const router       = useRouter();
   const ref          = useRef<HTMLAnchorElement>(null);
@@ -297,19 +386,18 @@ function ExitButton() {
         <span style={{
           position: "relative", zIndex: 0,
           display: "inline-flex", alignItems: "center", gap: 6,
-          color: "#020209", fontSize: fz, fontWeight: 500,
+          color: "#080808", fontSize: fz, fontWeight: 500,
           letterSpacing: "0.18em", fontFamily: "inherit", whiteSpace: "nowrap",
         }}>
           ← EXIT
         </span>
 
-        {/* Ripple fill */}
         <span
           aria-hidden
           style={{
             position: "absolute", inset: 0, zIndex: 10,
             display: "flex", alignItems: "center", justifyContent: "center",
-            background: "#020209",
+            background: "#080808",
             clipPath: hover ? "circle(150% at var(--x) var(--y))" : "circle(0% at var(--x) var(--y))",
             transition: "clip-path 500ms ease-out",
           }}
@@ -323,7 +411,6 @@ function ExitButton() {
           </span>
         </span>
 
-        {/* Shimmer */}
         <span aria-hidden style={{
           pointerEvents: "none", position: "absolute",
           top: 0, zIndex: 20, height: "100%", width: "33%",

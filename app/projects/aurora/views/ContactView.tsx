@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { motion } from "motion/react";
 import { submitContact } from "@/app/contact/actions";
-import { G, ease } from "../constants";
+import { G } from "../constants";
 import type { Nav } from "../types";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -12,7 +12,7 @@ const fieldStyle: React.CSSProperties = {
   width: "100%",
   background: "transparent",
   border: "none",
-  borderBottom: "1px solid rgba(68,102,255,0.22)",
+  borderBottom: "1px solid rgba(255,255,255,0.12)",
   color: G.white,
   fontSize: "0.85rem",
   padding: "0.75rem 0",
@@ -23,8 +23,8 @@ const fieldStyle: React.CSSProperties = {
 
 const labelStyle: React.CSSProperties = {
   display: "block",
-  color: "rgba(170,192,255,0.38)",
-  fontSize: "0.5rem",
+  color: G.iron,
+  fontSize: "0.40rem",
   letterSpacing: "0.38em",
   marginBottom: "0.5rem",
 };
@@ -64,33 +64,33 @@ export default function ContactView({ navigate: _navigate }: Props) {
     });
   }
 
-  const blue = (f: string): React.CSSProperties => ({
+  const fieldBorder = (f: string): React.CSSProperties => ({
     ...fieldStyle,
-    borderBottom: `1px solid ${focused === f ? "rgba(68,102,255,0.70)" : "rgba(68,102,255,0.22)"}`,
+    borderBottom: `1px solid ${focused === f ? "rgba(100,181,217,0.55)" : "rgba(255,255,255,0.12)"}`,
   });
 
   if (done) {
     return (
       <div style={{
-        minHeight: "100dvh", background: G.void,
+        minHeight: "100dvh", background: G.void2,
         display: "flex", alignItems: "center", justifyContent: "center",
         flexDirection: "column", textAlign: "center", padding: "4rem 2rem",
       }}>
         <motion.div
           initial={{ opacity: 0, scale: 0.92 }}
           animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.55, ease }}
+          transition={{ duration: 0.35 }}
         >
           <div style={{
             width: 56, height: 56, borderRadius: "50%",
-            border: `1px solid ${G.glowSoft}`,
+            border: `1px solid ${G.silver}`,
             display: "flex", alignItems: "center", justifyContent: "center",
             margin: "0 auto 2rem",
-            color: G.glowSoft, fontSize: "1.25rem",
+            color: G.silver, fontSize: "1.25rem",
           }}>
             ✓
           </div>
-          <div style={{ color: "rgba(100,110,255,0.55)", fontSize: "0.48rem", letterSpacing: "0.32em", marginBottom: "1rem" }}>
+          <div style={{ fontFamily: "monospace", color: G.ice, fontSize: "0.40rem", letterSpacing: "0.32em", marginBottom: "1rem" }}>
             TRANSMISSION RECEIVED
           </div>
           <h2 style={{
@@ -102,20 +102,20 @@ export default function ContactView({ navigate: _navigate }: Props) {
           }}>
             We&apos;ll be in contact.
           </h2>
-          <p style={{ color: "rgba(224,224,244,0.40)", fontSize: "0.80rem", maxWidth: 380, margin: "0 auto 2.5rem" }}>
+          <p style={{ color: G.silver, fontSize: "0.80rem", maxWidth: 380, margin: "0 auto 2.5rem" }}>
             Our mission team will reach out to <span style={{ color: G.white }}>{email}</span> within 48 hours to discuss availability.
           </p>
           <button
             onClick={() => setDone(false)}
             style={{
               background: "transparent",
-              border: "1px solid rgba(68,102,255,0.38)",
-              color: "rgba(136,153,255,0.80)",
+              border: "1px solid rgba(255,255,255,0.20)",
+              color: G.silver,
               padding: "0.65rem 2rem",
-              fontSize: "0.55rem",
+              fontSize: "0.40rem",
               letterSpacing: "0.28em",
               cursor: "pointer",
-              fontFamily: "inherit",
+              fontFamily: "monospace",
             }}
           >
             SEND ANOTHER
@@ -127,57 +127,57 @@ export default function ContactView({ navigate: _navigate }: Props) {
 
   return (
     <motion.div
-      initial={{ opacity: 0, scale: 0.985, filter: "blur(12px)" }}
-      animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
-      exit={{ opacity: 0, scale: 1.01, filter: "blur(8px)" }}
-      transition={{ duration: 0.55, ease }}
-      style={{ minHeight: "100dvh", background: G.void }}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.18 }}
+      style={{ minHeight: "100dvh", background: G.void2 }}
     >
       {/* Header */}
-      <div style={{ padding: "9rem 2rem 4rem", textAlign: "center" }}>
+      <div style={{ padding: "2rem 2rem 2rem", textAlign: "center" }}>
         <motion.div
-          initial={{ opacity: 0, y: 12 }}
+          initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.15, duration: 0.6, ease }}
-          style={{ color: "rgba(100,110,255,0.60)", fontSize: "0.5rem", letterSpacing: "0.36em", marginBottom: "1.25rem" }}
+          transition={{ delay: 0.08, duration: 0.35 }}
+          style={{
+            fontFamily: "monospace", color: G.ice,
+            fontSize: "0.40rem", letterSpacing: "0.36em", marginBottom: "1rem",
+          }}
         >
           SECURE A DEPARTURE
         </motion.div>
         <motion.h1
-          initial={{ opacity: 0, y: 16 }}
+          initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.25, duration: 0.7, ease }}
+          transition={{ delay: 0.14, duration: 0.40 }}
           style={{
-            fontFamily: "var(--font-display)",
-            fontWeight: 100,
-            fontSize: "clamp(2.5rem, 7vw, 5.5rem)",
-            color: G.white,
-            letterSpacing: "0.06em",
-            lineHeight: 1,
-            margin: 0,
+            fontFamily: "var(--font-display)", fontWeight: 100,
+            fontSize: "clamp(2rem, 5vw, 4rem)", color: G.white,
+            letterSpacing: "0.05em", lineHeight: 1, margin: 0,
           }}
         >
           Begin the Process
         </motion.h1>
         <motion.p
-          initial={{ opacity: 0, y: 10 }}
+          initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4, duration: 0.65, ease }}
-          style={{ color: "rgba(224,224,244,0.35)", fontSize: "0.75rem", marginTop: "1.25rem", maxWidth: 420, marginLeft: "auto", marginRight: "auto" }}
+          transition={{ delay: 0.22, duration: 0.35 }}
+          style={{ color: G.silver, fontSize: "0.72rem", marginTop: "1rem", maxWidth: 420, marginLeft: "auto", marginRight: "auto" }}
         >
           All voyages are arranged privately. Our mission team will contact you to discuss availability, passenger requirements, and preparation.
         </motion.p>
       </div>
 
-      {/* Flight classes strip */}
+      {/* Flight class summary */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ delay: 0.5, duration: 0.7 }}
+        transition={{ delay: 0.28, duration: 0.35 }}
         style={{
           display: "flex", justifyContent: "center", gap: "3rem",
-          padding: "1.5rem 2rem 3rem",
-          borderBottom: "1px solid rgba(68,102,255,0.10)",
+          padding: "1.25rem 2rem 1.75rem",
+          borderBottom: "1px solid rgba(255,255,255,0.06)",
+          borderTop: "1px solid rgba(255,255,255,0.06)",
           flexWrap: "wrap",
         }}
       >
@@ -187,24 +187,24 @@ export default function ContactView({ navigate: _navigate }: Props) {
           { label: "Cislunar",     detail: "8 days · from $18M" },
         ].map(o => (
           <div key={o.label} style={{ textAlign: "center" }}>
-            <div style={{ color: G.white, fontSize: "0.70rem", marginBottom: 4, fontWeight: 300 }}>{o.label}</div>
-            <div style={{ color: "rgba(224,224,244,0.32)", fontSize: "0.55rem", letterSpacing: "0.10em" }}>{o.detail}</div>
+            <div style={{ color: G.white, fontSize: "0.68rem", marginBottom: 4, fontWeight: 300 }}>{o.label}</div>
+            <div style={{ color: G.iron, fontSize: "0.50rem", letterSpacing: "0.10em", fontFamily: "monospace" }}>{o.detail}</div>
           </div>
         ))}
       </motion.div>
 
       {/* Form */}
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
+        initial={{ opacity: 0, y: 14 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.55, duration: 0.7, ease }}
-        style={{ maxWidth: 540, margin: "0 auto", padding: "4rem 2rem 8rem" }}
+        transition={{ delay: 0.32, duration: 0.40 }}
+        style={{ maxWidth: 540, margin: "0 auto", padding: "3rem 2rem 6rem" }}
       >
-        <form onSubmit={submit} style={{ display: "flex", flexDirection: "column", gap: "2.5rem" }}>
+        <form onSubmit={submit} style={{ display: "flex", flexDirection: "column", gap: "2.25rem" }}>
           <div>
             <label style={labelStyle}>YOUR NAME</label>
             <input
-              style={blue("name")}
+              style={fieldBorder("name")}
               value={name} onChange={e => setName(e.target.value)}
               placeholder="Full name"
               onFocus={() => setFocused("name")}
@@ -215,7 +215,7 @@ export default function ContactView({ navigate: _navigate }: Props) {
           <div>
             <label style={labelStyle}>EMAIL ADDRESS</label>
             <input
-              style={blue("email")}
+              style={fieldBorder("email")}
               type="email"
               value={email} onChange={e => setEmail(e.target.value)}
               placeholder="your@address.com"
@@ -230,18 +230,18 @@ export default function ContactView({ navigate: _navigate }: Props) {
               value={voyage}
               onChange={e => setVoyage(e.target.value)}
               style={{
-                ...blue("voyage"),
+                ...fieldBorder("voyage"),
                 appearance: "none",
                 WebkitAppearance: "none",
                 cursor: "pointer",
-                color: voyage ? G.white : "rgba(224,224,244,0.32)",
+                color: voyage ? G.white : G.iron,
               }}
               onFocus={() => setFocused("voyage")}
               onBlur={() => setFocused(null)}
             >
-              <option value="" style={{ background: G.hull, color: "rgba(224,224,244,0.55)" }}>Select a voyage class…</option>
+              <option value="" style={{ background: G.gunmetal, color: G.iron }}>Select a voyage class…</option>
               {VOYAGE_OPTIONS.map(v => (
-                <option key={v} value={v} style={{ background: G.hull, color: G.white }}>{v}</option>
+                <option key={v} value={v} style={{ background: G.gunmetal, color: G.white }}>{v}</option>
               ))}
             </select>
           </div>
@@ -249,7 +249,7 @@ export default function ContactView({ navigate: _navigate }: Props) {
           <div>
             <label style={labelStyle}>YOUR MESSAGE</label>
             <textarea
-              style={{ ...blue("message"), resize: "none", minHeight: 120 }}
+              style={{ ...fieldBorder("message"), resize: "none", minHeight: 120 }}
               value={message} onChange={e => setMessage(e.target.value)}
               placeholder="Tell us about yourself and what you're looking for…"
               onFocus={() => setFocused("message")}
@@ -258,7 +258,7 @@ export default function ContactView({ navigate: _navigate }: Props) {
           </div>
 
           {err && (
-            <div style={{ color: "rgba(136,153,255,0.80)", fontSize: "0.70rem" }}>{err}</div>
+            <div style={{ color: G.chrome, fontSize: "0.70rem" }}>{err}</div>
           )}
 
           <button
@@ -268,13 +268,13 @@ export default function ContactView({ navigate: _navigate }: Props) {
               width: "100%",
               padding: "1rem",
               background: "transparent",
-              border: `1px solid ${valid && !pending ? "rgba(68,102,255,0.55)" : "rgba(68,102,255,0.18)"}`,
-              color: valid && !pending ? "rgba(136,153,255,0.95)" : "rgba(224,224,244,0.22)",
-              fontSize: "0.55rem",
+              border: `1px solid ${valid && !pending ? "rgba(255,255,255,0.28)" : "rgba(255,255,255,0.08)"}`,
+              color: valid && !pending ? G.frost : G.iron,
+              fontSize: "0.40rem",
               letterSpacing: "0.3em",
               cursor: valid && !pending ? "pointer" : "not-allowed",
-              transition: "all 0.3s ease",
-              fontFamily: "inherit",
+              transition: "all 0.25s ease",
+              fontFamily: "monospace",
             }}
           >
             {pending ? "TRANSMITTING…" : "BEGIN THE CONVERSATION"}
@@ -282,9 +282,9 @@ export default function ContactView({ navigate: _navigate }: Props) {
         </form>
 
         <p style={{
-          marginTop: "3rem",
-          color: "rgba(224,224,244,0.18)",
-          fontSize: "0.55rem",
+          marginTop: "2.5rem",
+          color: G.iron,
+          fontSize: "0.42rem",
           letterSpacing: "0.12em",
           textAlign: "center",
         }}>

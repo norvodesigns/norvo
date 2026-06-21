@@ -1,16 +1,23 @@
 export const G = {
-  void:     "#020209",
-  deep:     "#06060F",
-  hull:     "#0C0C1C",
-  panel:    "#111122",
-  seam:     "#1C1C30",
-  dim:      "#383858",
-  silver:   "#68688A",
-  chrome:   "#A8A8C4",
-  white:    "#E0E0F4",
-  glow:     "#4466FF",
-  glowSoft: "#8899FF",
-  accent:   "#AAC0FF",
+  // Backgrounds
+  void:     "#080808",
+  void2:    "#0F0F0F",
+  gunmetal: "#1C1C1E",
+  titanium: "#2C2C2E",
+  steel:    "#3A3A3C",
+  // Text
+  iron:     "#636366",
+  silver:   "#8E8E93",
+  chrome:   "#AEAEB2",
+  platinum: "#C7C7CC",
+  frost:    "#E5E5EA",
+  white:    "#F5F5F7",
+  // Accent — very restrained (active nav, engine glow only)
+  ice:      "#64B5D9",
+  iceDim:   "#2A6A8A",
+  // Aliases so AuroraCursor compiles without changes
+  glow:     "#64B5D9",
+  glowSoft: "#8E8E93",
 } as const;
 
 export const ease = [0.22, 1, 0.36, 1] as const;

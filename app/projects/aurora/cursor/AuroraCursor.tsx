@@ -78,7 +78,7 @@ export default function AuroraCursor() {
         ) : (
           <div style={{
             width: "100%", height: "100%", borderRadius: "50%",
-            border: `1px solid rgba(100, 110, 255, 0.55)`,
+            border: `1px solid rgba(100, 181, 217, 0.40)`,
           }} />
         )}
       </motion.div>
