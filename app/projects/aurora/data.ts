@@ -1,199 +1,282 @@
+import type { Destination, DestinationId } from "./types";
+
 // ─────────────────────────────────────────────────────────────────────────────
-// Aurora Space Tourism — Concept Demo Data
+// Aurora — Interplanetary Navigation Data
 // All content is entirely fictional. Not a real company or flight operator.
 // ─────────────────────────────────────────────────────────────────────────────
 
-export type VoyageClass = "Sub-Orbital" | "Orbital" | "Cislunar";
-
-export type Voyage = {
-  id: string;
-  designation: string;
-  name: string;
-  class: VoyageClass;
-  tagline: string;
-  duration: string;
-  altitude: string;
-  capacity: number;
-  maxG: string;
-  peakVelocity: string;
-  microgravity: string;
-  price: string;
-  // CSS gradient — stands in for a hero image
-  envGradient: string;
-  // accent colour for this voyage
-  envAccent: string;
-  description: string;
-  highlights: string[];
-  stats: { label: string; value: string }[];
-};
-
-export type Vehicle = {
-  id: string;
-  designation: string;
-  name: string;
-  type: string;
-  capacity: number;
-  maxAlt: string;
-  maxVelocity: string;
-  hull: string;
-  propulsion: string;
-  firstFlight: string;
-  description: string;
-};
-
-// ─── Voyages ─────────────────────────────────────────────────────────────────
-
-export const VOYAGES: Voyage[] = [
+export const DESTINATIONS: Destination[] = [
+  // ─── Earth — Home ────────────────────────────────────────────────────────────
   {
-    id: "arc",
-    designation: "ARC-180",
-    name: "Sub-Orbital Arc",
-    class: "Sub-Orbital",
-    tagline: "The edge of everything",
-    duration: "90 minutes",
-    altitude: "180 km",
-    capacity: 6,
-    maxG: "3.2g",
-    peakVelocity: "7,400 km/h",
-    microgravity: "14 minutes",
-    price: "From $450,000 per seat",
-    envGradient:
-      "linear-gradient(to bottom, #020209 0%, #04042A 28%, #080860 50%, #103090 65%, #204AB0 80%, #3068C0 92%, #4882C8 100%)",
-    envAccent: "#5A90D8",
+    id: "earth",
+    name: "Earth",
+    designation: "SOL-III",
+    classification: "Terrestrial Origin World",
+    role: "DEPARTURE ORIGIN",
+    tagline: "Every journey begins with a last breath of atmosphere",
     description:
-      "Pierce the Kármán line and cross into the silence above. An arc through the highest reaches of the sky — brief, transformative, and utterly unlike anything on the surface. Earth curves below. The atmosphere thins to a luminous thread. Then silence.",
+      "All Aurora missions originate from a classified ground facility — accessible only by verified passenger manifest. Your last contact with gravity as you know it occurs here. This node marks the threshold. Beyond this entry point, you are committed.",
+    distance: "0 km",
+    travelTime: "Departure in T-minus 72 hours",
+    gravity: "1.0g",
+    status: "ORIGIN NODE · ACTIVE",
     highlights: [
-      "Kármán Line crossing (official certification)",
-      "14 minutes of microgravity",
-      "360° panoramic viewports",
-      "Private pre-flight preparation suite",
-      "Mission debrief with lead pilot",
-      "Aurora flight logbook and documentation",
+      "Pre-flight medical screening and certification",
+      "Private mission briefing with lead pilot",
+      "Pressure suit fitting and calibration",
+      "Final transmission suite — encrypted personal messages",
+      "Departure dinner at altitude +4,200m",
+      "Ground crew escort to launch vehicle",
     ],
     stats: [
-      { label: "Altitude", value: "180 km" },
-      { label: "Duration", value: "90 min" },
-      { label: "Microgravity", value: "14 min" },
-      { label: "Peak velocity", value: "7,400 km/h" },
-      { label: "Peak G-force", value: "3.2g" },
-      { label: "Passengers", value: "6 max" },
+      { label: "Altitude", value: "0 km" },
+      { label: "Gravity", value: "1.0g" },
+      { label: "Atmosphere", value: "N₂/O₂ Standard" },
+      { label: "Node type", value: "Origin" },
+      { label: "Departure window", value: "Monthly" },
+      { label: "Clearance level", value: "AURORA-1" },
     ],
+    worldX: 0,
+    worldY: 0,
+    radius: 0.36,
+    glowColor: "#4488FF",
+    planetType: 0,
   },
+
+  // ─── Luna — About ─────────────────────────────────────────────────────────────
   {
-    id: "orbit",
-    designation: "ORB-420",
-    name: "Orbital Voyage",
-    class: "Orbital",
-    tagline: "72 hours above the world",
-    duration: "3 days",
-    altitude: "420 km",
-    capacity: 8,
-    maxG: "2.1g",
-    peakVelocity: "27,580 km/h",
-    microgravity: "70 hours",
-    price: "From $2.4M per seat",
-    envGradient:
-      "radial-gradient(ellipse 140% 50% at 50% 115%, #1840A8 0%, #0A1880 18%, #040430 45%, #020209 100%)",
-    envAccent: "#4468CC",
+    id: "luna",
+    name: "Luna",
+    designation: "LUNA-001",
+    classification: "Natural Satellite · Sol",
+    role: "THE FIRST HORIZON",
+    tagline: "Silence at 384,400 kilometres",
     description:
-      "Three days in low Earth orbit aboard the Aurora II cruiser. Watch 48 sunrises through triple-paned viewports. Dine in zero gravity. Sleep floating two millimetres above your berth as continents drift silently beneath you. Rendezvous with Nexus Station on day two.",
+      "Humanity's first stepping stone. Aurora operates a cislunar transit route with a 3-day approach phase and optional low-orbit pass over the far side — a hemisphere no surface observer has ever seen directly. The regolith here has not shifted in four billion years. You will leave footprints that outlast civilisations.",
+    distance: "384,400 km",
+    travelTime: "3 days",
+    gravity: "0.165g",
+    status: "AVAILABLE · NEXT WINDOW 14 DAYS",
     highlights: [
-      "48 orbital sunrises observed",
-      "Zero-gravity dining experience",
-      "Private Aurora II cabin assignment",
-      "Rendezvous and docking with Nexus Station",
-      "Orbital photography session with specialist",
-      "Earth observation with annotated overpass schedule",
-    ],
-    stats: [
-      { label: "Altitude", value: "420 km" },
-      { label: "Duration", value: "3 days" },
-      { label: "Microgravity", value: "70 hours" },
-      { label: "Orbital velocity", value: "27,580 km/h" },
-      { label: "Sunrises", value: "48" },
-      { label: "Passengers", value: "8 max" },
-    ],
-  },
-  {
-    id: "transit",
-    designation: "LNR-384",
-    name: "Lunar Transit",
-    class: "Cislunar",
-    tagline: "The far side of the Moon",
-    duration: "8 days",
-    altitude: "384,400 km",
-    capacity: 4,
-    maxG: "1.8g",
-    peakVelocity: "39,000 km/h",
-    microgravity: "7 days",
-    price: "From $18M per seat",
-    envGradient:
-      "radial-gradient(ellipse 60% 60% at 72% 28%, #141428 0%, #0A0A18 35%, #020209 100%)",
-    envAccent: "#3855BB",
-    description:
-      "Travel further from Earth than any human has since Apollo. A circumlunar free-return trajectory carries you around the far side of the Moon — the face no one on the surface has ever seen — before returning you across 384,400 kilometres of absolute void. Earth becomes a marble. Then a point of light.",
-    highlights: [
-      "Far side lunar flyby — the un-seen hemisphere",
-      "Maximum cislunar distance record eligible",
-      "Private cislunar suite aboard Aurora II",
-      "Earthrise photographed at lunar distance",
-      "Daily mission specialist briefings",
-      "Aurora Cislunar Pioneer documentation",
+      "Far-side flyover — the hemisphere Earth never sees",
+      "Earthrise observation from lunar orbit",
+      "Low-gravity surface excursion (EVA-certified passengers)",
+      "Regolith sample collection under mission geologist",
+      "Silence protocol: 24-hour communication blackout option",
+      "Aurora Cislunar documentation package",
     ],
     stats: [
       { label: "Distance", value: "384,400 km" },
-      { label: "Duration", value: "8 days" },
-      { label: "Microgravity", value: "7 days" },
-      { label: "Peak velocity", value: "39,000 km/h" },
-      { label: "Peak G-force", value: "1.8g" },
+      { label: "Transit", value: "3 days" },
+      { label: "Gravity", value: "0.165g" },
+      { label: "Temperature", value: "-173°C / +127°C" },
+      { label: "Orbit altitude", value: "100 km" },
       { label: "Passengers", value: "4 max" },
     ],
+    worldX: 3.2,
+    worldY: 1.6,
+    radius: 0.18,
+    glowColor: "#A0A8B8",
+    planetType: 1,
+  },
+
+  // ─── Mars — Destinations ──────────────────────────────────────────────────────
+  {
+    id: "mars",
+    name: "Mars",
+    designation: "SOL-IV",
+    classification: "Terrestrial Planet · Inner System",
+    role: "THE RED FRONTIER",
+    tagline: "Six months of void. A lifetime of perspective",
+    description:
+      "Aurora's most ambitious current destination. The Valles Marineris canyon system is 4,000 kilometres long and drops 7 kilometres in depth — no other canyon in the solar system compares. Olympus Mons rises 22 kilometres above the surrounding plain. A world of extremes, absolute quiet, and the most violent dust storms ever measured.",
+    distance: "54.6M – 401.3M km",
+    travelTime: "6–9 months",
+    gravity: "0.376g",
+    status: "EXPEDITION · APPLICATION REQUIRED",
+    highlights: [
+      "Valles Marineris canyon rim observation (EVA protocol)",
+      "Olympus Mons approach — highest known volcano in the solar system",
+      "Martian sunset photography — blue twilight phenomenon",
+      "Private pressurised habitat at Aurora Base Ares",
+      "Areology field sessions with mission geologist",
+      "Dust storm monitoring — classified as extreme experience",
+    ],
+    stats: [
+      { label: "Distance", value: "54.6M – 401.3M km" },
+      { label: "Transit", value: "6–9 months" },
+      { label: "Gravity", value: "0.376g" },
+      { label: "Temperature", value: "-87°C / -5°C" },
+      { label: "Day length", value: "24h 37m" },
+      { label: "Passengers", value: "6 max" },
+    ],
+    worldX: 7.0,
+    worldY: -2.0,
+    radius: 0.24,
+    glowColor: "#CC4422",
+    planetType: 2,
+  },
+
+  // ─── Europa — Experiences ─────────────────────────────────────────────────────
+  {
+    id: "europa",
+    name: "Europa",
+    designation: "JUP-II",
+    classification: "Galilean Moon · Jupiter",
+    role: "SUBSURFACE OCEANS",
+    tagline: "An alien sea beneath 25 kilometres of ice",
+    description:
+      "Europa is cracked like a broken mirror — fracture lines running thousands of kilometres across its icy shell, stained rust-red where the subsurface ocean bleeds through. Aurora operates an orbital platform above the chaos terrain. The ocean beneath contains twice the liquid water of all of Earth's oceans combined. You will be the closest human to an alien sea.",
+    distance: "628.3M km",
+    travelTime: "2.5–3 years",
+    gravity: "0.134g",
+    status: "ULTRA-DISTANCE · PRIVATE CHARTER",
+    highlights: [
+      "Jupiter orbital observation from the Jovian system",
+      "Europa surface approach — chaos terrain flyover",
+      "Thermal plume detection observation (subsurface activity)",
+      "Aurora Europa Platform — permanent orbital station",
+      "Ice spectroscopy session with astrobiology specialist",
+      "Classified proximity: highest likelihood of life detection site",
+    ],
+    stats: [
+      { label: "Distance", value: "628.3M km" },
+      { label: "Transit", value: "2.5–3 years" },
+      { label: "Gravity", value: "0.134g" },
+      { label: "Ice shell depth", value: "~25 km" },
+      { label: "Ocean depth", value: "100+ km" },
+      { label: "Passengers", value: "2 max" },
+    ],
+    worldX: -4.5,
+    worldY: 3.0,
+    radius: 0.20,
+    glowColor: "#55AAFF",
+    planetType: 3,
+  },
+
+  // ─── Titan — Fleet ────────────────────────────────────────────────────────────
+  {
+    id: "titan",
+    name: "Titan",
+    designation: "SAT-VI",
+    classification: "Nitrogen-world Moon · Saturn",
+    role: "GOLDEN ATMOSPHERE",
+    tagline: "The only moon with weather",
+    description:
+      "Titan is the only moon in the solar system with a dense, breathable-pressure atmosphere — though you would not want to breathe it. Nitrogen and methane lakes fill its lowlands. Saturn looms above the haze, its rings visible through the amber sky. Aurora's fleet maintenance base operates here — the sector's only facility capable of hypersonic atmospheric insertion and full vehicle service.",
+    distance: "1.28B km",
+    travelTime: "3–4 years",
+    gravity: "0.14g",
+    status: "FLEET BASE · RESTRICTED ACCESS",
+    highlights: [
+      "Aurora fleet operations centre — observation access",
+      "Saturn ring plane transit from the Saturnian system",
+      "Atmospheric insertion aboard the Aurora III — classified as extreme",
+      "Methane lake radar mapping session",
+      "Titan haze: the only world where you can walk in open air with only an oxygen mask",
+      "AURORA-3 clearance personnel only",
+    ],
+    stats: [
+      { label: "Distance", value: "1.28B km" },
+      { label: "Transit", value: "3–4 years" },
+      { label: "Gravity", value: "0.14g" },
+      { label: "Atmosphere", value: "1.45 atm N₂/CH₄" },
+      { label: "Surface temp", value: "-179°C" },
+      { label: "Passengers", value: "2 max" },
+    ],
+    worldX: -7.5,
+    worldY: -2.5,
+    radius: 0.28,
+    glowColor: "#D4A030",
+    planetType: 4,
+  },
+
+  // ─── Kepler — Technology ──────────────────────────────────────────────────────
+  {
+    id: "kepler",
+    name: "Kepler-442b",
+    designation: "KOI-4742.01",
+    classification: "Super-Earth · Habitable Zone",
+    role: "INTERSTELLAR THRESHOLD",
+    tagline: "1,200 light-years. The destination Aurora is building toward",
+    description:
+      "A super-Earth 1,206 light-years from Sol, orbiting a K-type star in the habitable zone with a 112-day year. Surface gravity is estimated at 1.34g. Atmospheric conditions are unknown. Aurora's long-range propulsion research is oriented toward a single destination: the first crewed interstellar mission. This node is where that ambition is documented and developed. No human has gone. Yet.",
+    distance: "1,206 light-years",
+    travelTime: "Interstellar — not yet available",
+    gravity: "~1.34g (estimated)",
+    status: "RESEARCH NODE · ACCEPTING RESERVATIONS",
+    highlights: [
+      "Interstellar mission research facility — open to reservation holders",
+      "Drive technology briefing: current propulsion development",
+      "Kepler-442 system simulation — full immersive environment",
+      "Mission timeline projection: provisional 2090–2110 launch window",
+      "Priority reservation for Aurora Interstellar Founding Series",
+      "Personal mission file opened upon clearance",
+    ],
+    stats: [
+      { label: "Distance", value: "1,206 ly" },
+      { label: "Planet type", value: "Super-Earth" },
+      { label: "Star type", value: "K-type" },
+      { label: "Orbital period", value: "112 days" },
+      { label: "Est. gravity", value: "~1.34g" },
+      { label: "Reservation", value: "Open" },
+    ],
+    worldX: 12.0,
+    worldY: 3.5,
+    radius: 0.30,
+    glowColor: "#5A6CFF",
+    planetType: 5,
+  },
+
+  // ─── Orion Station — Contact ──────────────────────────────────────────────────
+  {
+    id: "orion",
+    name: "Orion Station",
+    designation: "AURO-NS-001",
+    classification: "Permanent Orbital Habitat · L2",
+    role: "DEEP SPACE HUB",
+    tagline: "The only address that changes orbit every 72 hours",
+    description:
+      "Positioned at the Earth-Sun L2 Lagrange point. Aurora's primary orbital facility and routing hub. All ultra-distance voyage enquiries are processed here. Mission control operates from Orion Station's navigation tier. Twelve permanent berths. A full-circumference observation deck. Two docking bays. This is where you begin the conversation that could put you into the deep solar system.",
+    distance: "1.5M km (L2 point)",
+    travelTime: "4–5 days",
+    gravity: "0g (orbital)",
+    status: "ACCEPTING ENQUIRIES",
+    highlights: [
+      "Aurora mission coordination — direct access to flight operations",
+      "Full-circumference observation deck — 360° orbital view",
+      "Ultra-distance voyage consultation with senior flight planner",
+      "Station tour: navigation tier, docking bays, habitat ring",
+      "Zero-gravity orientation and acclimatisation programme",
+      "Medical clearance processing for long-duration missions",
+    ],
+    stats: [
+      { label: "Position", value: "L2 Lagrange" },
+      { label: "Transit", value: "4–5 days" },
+      { label: "Gravity", value: "0g" },
+      { label: "Berths", value: "12" },
+      { label: "Docking bays", value: "2" },
+      { label: "Status", value: "Operational" },
+    ],
+    worldX: 1.5,
+    worldY: -5.5,
+    radius: 0.16,
+    glowColor: "#C0D0F0",
+    planetType: 6,
   },
 ];
 
-// ─── Fleet ────────────────────────────────────────────────────────────────────
+// ─── Travel routes ────────────────────────────────────────────────────────────
 
-export const FLEET: Vehicle[] = [
-  {
-    id: "aurora-i",
-    designation: "AV-001",
-    name: "Aurora I",
-    type: "Sub-Orbital Ascent Vehicle",
-    capacity: 6,
-    maxAlt: "180 km (apogee)",
-    maxVelocity: "Mach 6.2",
-    hull: "Carbon-titanium composite",
-    propulsion: "LOX / kerosene staged combustion",
-    firstFlight: "2029",
-    description:
-      "Single-stage ballistic ascent vehicle. A pressurised passenger capsule with retractable aeroshell. Recovers under powered vertical descent. Designed for the Sub-Orbital Arc experience.",
-  },
-  {
-    id: "aurora-ii",
-    designation: "AV-002",
-    name: "Aurora II",
-    type: "Orbital Cruiser",
-    capacity: 8,
-    maxAlt: "420 km (operational orbit)",
-    maxVelocity: "Mach 25 (orbital)",
-    hull: "Ceramic-thermal composite / titanium frame",
-    propulsion: "LOX / methane main engines + RCS",
-    firstFlight: "2030",
-    description:
-      "Aurora's orbital flagship. A pressurised vehicle with a forward observation lounge, eight private berths, and a galley designed for zero-gravity dining. Rendezvous-capable with Nexus Station. Also used for cislunar transit.",
-  },
-  {
-    id: "nexus",
-    designation: "NS-001",
-    name: "Nexus Station",
-    type: "Orbital Habitat",
-    capacity: 12,
-    maxAlt: "420 km (fixed orbit)",
-    maxVelocity: "Station-keeping",
-    hull: "Aluminium alloy pressure vessels + radiation shielding",
-    propulsion: "Ion thrusters (station-keeping only)",
-    firstFlight: "2031",
-    description:
-      "Aurora's permanent orbital habitat. Twelve berths across two habitation rings, a full-circumference observation deck, two docking bays, and a zero-gravity recreation area. A destination in itself.",
-  },
+export type Route = { from: DestinationId; to: DestinationId };
+
+export const ROUTES: Route[] = [
+  { from: "earth", to: "luna" },
+  { from: "earth", to: "mars" },
+  { from: "earth", to: "orion" },
+  { from: "luna",  to: "europa" },
+  { from: "mars",  to: "europa" },
+  { from: "europa", to: "titan" },
+  { from: "titan",  to: "kepler" },
+  { from: "orion",  to: "kepler" },
 ];

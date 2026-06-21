@@ -59,26 +59,25 @@ export default function AuroraCursor() {
         transition={{ duration: 0.15 }}
       >
         {panel ? (
-          // Crosshair reticle for voyage panels
           <div style={{ position: "relative", width: "100%", height: "100%" }}>
             <span style={{
               position: "absolute", top: "50%", left: 0, right: 0, height: 1,
-              background: `rgba(168, 168, 196, 0.55)`, transform: "translateY(-50%)",
+              background: `rgba(166, 200, 255, 0.45)`, transform: "translateY(-50%)",
             }} />
             <span style={{
               position: "absolute", left: "50%", top: 0, bottom: 0, width: 1,
-              background: `rgba(168, 168, 196, 0.55)`, transform: "translateX(-50%)",
+              background: `rgba(166, 200, 255, 0.45)`, transform: "translateX(-50%)",
             }} />
             <span style={{
               position: "absolute", inset: "30%",
               borderRadius: "50%",
-              border: `1px solid rgba(168,168,196,0.35)`,
+              border: `1px solid rgba(166,200,255,0.28)`,
             }} />
           </div>
         ) : (
           <div style={{
             width: "100%", height: "100%", borderRadius: "50%",
-            border: `1px solid rgba(100, 181, 217, 0.40)`,
+            border: `1px solid rgba(166, 200, 255, 0.35)`,
           }} />
         )}
       </motion.div>

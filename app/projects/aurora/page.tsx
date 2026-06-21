@@ -1,426 +1,304 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
-import {
-  motion, useTransform,
-  useMotionValue, useSpring, useReducedMotion, useInView,
-} from "motion/react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
-import { useDeviceTilt } from "@/components/DeviceTilt";
-
-import { G } from "./constants";
-import type { Route } from "./types";
-import { useAuroraScroll } from "./hooks/useAuroraScroll";
+import type { DestinationId, NavState } from "./types";
+import { DESTINATIONS } from "./data";
+import InfoPanel from "./components/InfoPanel";
+import ReturnButton from "./components/ReturnButton";
 import AuroraCursor from "./cursor/AuroraCursor";
-import HomeView from "./views/HomeView";
-import VoyagesView from "./views/VoyagesView";
-import VoyageDetailView from "./views/VoyageDetailView";
-import FleetView from "./views/FleetView";
-import ContactView from "./views/ContactView";
-import { AnimatePresence } from "motion/react";
 
-const AuroraBackground = dynamic(
-  () => import("./webgl/AuroraBackground"),
-  { ssr: false }
-);
+const CosmicMap = dynamic(() => import("./webgl/CosmicMap"), { ssr: false });
 
-const NAV_ITEMS: { num: string; label: string; route: Route }[] = [
-  { num: "01", label: "HOME",    route: { view: "home"    } },
-  { num: "02", label: "VOYAGES", route: { view: "voyages" } },
-  { num: "03", label: "FLEET",   route: { view: "fleet"   } },
-  { num: "04", label: "CONTACT", route: { view: "contact" } },
-];
+// ─── Warp exit canvas ─────────────────────────────────────────────────────────
 
-function routeKey(r: Route): string {
-  return r.view === "voyage" ? `voyage-${r.id}` : r.view;
-}
-
-function activeView(r: Route): string {
-  return r.view === "voyage" ? "voyages" : r.view;
-}
-
-export default function AuroraPage() {
-  const [route, setRoute] = useState<Route>({ view: "home" });
-  const [isMobile, setIsMobile] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const { scrollY, scrollYSmooth } = useAuroraScroll(containerRef);
-
-  const lookRef      = useRef({ x: 0, y: 0 });
-  const scrollRafRef = useRef(0);
+function WarpOverlay({ onComplete }: { onComplete: () => void }) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
-    setIsMobile(window.matchMedia("(max-width: 767px)").matches);
-  }, []);
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    canvas.width  = window.innerWidth;
+    canvas.height = window.innerHeight;
+    const ctx = canvas.getContext("2d")!;
+    const w = canvas.width, h = canvas.height;
+    const cx = w / 2, cy = h / 2;
+    const maxR = Math.hypot(cx, cy) * 1.15;
 
-  useEffect(() => {
-    return scrollY.on("change", v => {
-      const el = containerRef.current;
-      const max = el ? Math.max(el.scrollHeight - el.clientHeight, 1) : 1;
-      scrollRafRef.current = v / max;
-    });
-  }, [scrollY]);
+    const streaks = Array.from({ length: 220 }, (_, i) => ({
+      angle: (i / 220) * Math.PI * 2 + (Math.sin(i * 0.4) * 0.06),
+      width: 0.4 + (((i * 7 + 3) % 10) / 10) * 1.8,
+      blue: i % 3 === 0,
+    }));
+
+    const start = performance.now();
+    const duration = 1700;
+
+    const frame = (now: number) => {
+      const p = Math.min((now - start) / duration, 1.0);
+      const stretch = Math.pow(p, 1.8);
+
+      ctx.fillStyle = `rgba(3,5,7,${Math.min(p * 5, 1)})`;
+      ctx.fillRect(0, 0, w, h);
+
+      streaks.forEach(s => {
+        const sr = stretch * maxR * 0.03;
+        const er = stretch * maxR * 1.12 * (0.85 + 0.15 * Math.sin(s.angle * 3));
+        ctx.beginPath();
+        ctx.moveTo(cx + Math.cos(s.angle) * sr, cy + Math.sin(s.angle) * sr);
+        ctx.lineTo(cx + Math.cos(s.angle) * er, cy + Math.sin(s.angle) * er);
+        const a = Math.min(p * 2.8, 1.0) * 0.75;
+        ctx.strokeStyle = s.blue
+          ? `rgba(166,200,255,${a})`
+          : `rgba(232,237,245,${a * 0.65})`;
+        ctx.lineWidth = s.width;
+        ctx.stroke();
+      });
+
+      // Bright central core
+      if (p > 0.3) {
+        const coreA = Math.min((p - 0.3) / 0.4, 1.0);
+        const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, maxR * 0.4);
+        grad.addColorStop(0, `rgba(200,215,255,${coreA * 0.55})`);
+        grad.addColorStop(1, "rgba(0,0,0,0)");
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, w, h);
+      }
+
+      // White flash
+      if (p > 0.78) {
+        const flash = (p - 0.78) / 0.22;
+        ctx.fillStyle = `rgba(255,255,255,${flash * flash * 0.95})`;
+        ctx.fillRect(0, 0, w, h);
+      }
+
+      if (p < 1.0) {
+        requestAnimationFrame(frame);
+      } else {
+        onComplete();
+      }
+    };
+    requestAnimationFrame(frame);
+  }, [onComplete]);
+
+  return (
+    <canvas
+      ref={canvasRef}
+      style={{
+        position: "fixed", inset: 0,
+        zIndex: 9000, pointerEvents: "none",
+      }}
+    />
+  );
+}
+
+// ─── Coordinate HUD ───────────────────────────────────────────────────────────
+
+function CoordHud() {
+  const [coords, setCoords] = useState({ ra: "00h 00m 00s", dec: "+00° 00′ 00″" });
 
   useEffect(() => {
     const onMove = (e: MouseEvent) => {
-      lookRef.current.x = (e.clientX / window.innerWidth)  * 2 - 1;
-      lookRef.current.y = -((e.clientY / window.innerHeight) * 2 - 1);
+      const ra_h  = Math.floor((e.clientX / window.innerWidth) * 24);
+      const ra_m  = Math.floor(((e.clientX / window.innerWidth) * 24 * 60) % 60);
+      const ra_s  = Math.floor(((e.clientX / window.innerWidth) * 24 * 3600) % 60);
+      const dec_d = Math.floor((1 - e.clientY / window.innerHeight) * 180 - 90);
+      const dec_m = Math.floor(Math.abs(((1 - e.clientY / window.innerHeight) * 180 - 90) * 60) % 60);
+      setCoords({
+        ra:  `${String(ra_h).padStart(2,"0")}h ${String(ra_m).padStart(2,"0")}m ${String(ra_s).padStart(2,"0")}s`,
+        dec: `${dec_d >= 0 ? "+" : ""}${String(dec_d).padStart(2,"0")}° ${String(dec_m).padStart(2,"0")}′ 00″`,
+      });
     };
     window.addEventListener("mousemove", onMove, { passive: true });
     return () => window.removeEventListener("mousemove", onMove);
   }, []);
 
-  const tilt = useDeviceTilt();
-  useEffect(() => {
-    if (!tilt?.enabled) return;
-    const ux = tilt.tiltX.on("change", v => { lookRef.current.x =  v; });
-    const uy = tilt.tiltY.on("change", v => { lookRef.current.y = -v; });
-    return () => { ux(); uy(); };
-  }, [tilt]);
-
-  const navigate = (r: Route) => {
-    containerRef.current?.scrollTo({ top: 0, behavior: "instant" });
-    setRoute(r);
-  };
-
-  useEffect(() => {
-    const el = containerRef.current;
-    if (el) el.style.cssText += ";scrollbar-width:none;-ms-overflow-style:none;";
-  }, []);
-
-  const current = activeView(route);
-
   return (
     <div style={{
-      position: "fixed", inset: "6px", zIndex: 500,
-      background: G.void,
-      borderRadius: 16,
-      overflow: "hidden",
-      boxShadow: "0 0 0 1px rgba(255,255,255,0.04), 0 32px 80px rgba(0,0,0,0.85)",
+      position: "fixed", bottom: 20, left: 20,
+      zIndex: 400, pointerEvents: "none",
+      fontFamily: "monospace",
+      fontSize: "0.44rem",
+      letterSpacing: "0.14em",
+      color: "rgba(169,179,196,0.45)",
+      lineHeight: 1.7,
     }}>
-      {/* WebGL starfield — behind everything */}
-      <div style={{ position: "absolute", inset: 0, zIndex: 0 }}>
-        <AuroraBackground lookRef={lookRef} scrollRafRef={scrollRafRef} />
+      <div>RA  {coords.ra}</div>
+      <div>DEC {coords.dec}</div>
+      <div style={{ marginTop: 4, color: "rgba(169,179,196,0.28)" }}>
+        AURORA NAV · AV.2031
       </div>
-
-      {/* Two-column grid: sidebar | content */}
-      <div style={{
-        position: "relative", zIndex: 10,
-        display: "grid",
-        gridTemplateColumns: isMobile ? "1fr" : "160px 1fr",
-        gridTemplateRows: isMobile ? "1fr 56px" : "1fr",
-        height: "100%",
-      }}>
-        {/* ── Sidebar / bottom tab bar ──────────────────────────────── */}
-        {isMobile ? (
-          // Mobile: bottom tab bar
-          <div style={{
-            gridRow: 2, gridColumn: 1,
-            display: "flex", flexDirection: "row",
-            height: 56,
-            background: "rgba(28,28,30,0.92)",
-            backdropFilter: "blur(16px)",
-            WebkitBackdropFilter: "blur(16px)",
-            borderTop: "1px solid rgba(255,255,255,0.08)",
-          }}>
-            {NAV_ITEMS.map(({ num, label, route: r }) => {
-              const isActive = current === r.view;
-              return (
-                <button
-                  key={r.view}
-                  onClick={() => navigate(r)}
-                  style={{
-                    flex: 1,
-                    display: "flex", flexDirection: "column",
-                    alignItems: "center", justifyContent: "center",
-                    gap: 3,
-                    background: "none", border: "none", cursor: "pointer",
-                    padding: 0,
-                  }}
-                >
-                  <span style={{
-                    fontFamily: "monospace",
-                    fontSize: "0.42rem",
-                    letterSpacing: "0.12em",
-                    color: isActive ? G.ice : G.iron,
-                    transition: "color 0.2s ease",
-                  }}>{num}</span>
-                  <span style={{
-                    fontSize: "0.40rem",
-                    letterSpacing: "0.16em",
-                    color: isActive ? G.white : G.silver,
-                    transition: "color 0.2s ease",
-                  }}>{label}</span>
-                </button>
-              );
-            })}
-          </div>
-        ) : (
-          // Desktop: vertical sidebar
-          <div style={{
-            gridRow: 1, gridColumn: 1,
-            display: "flex", flexDirection: "column",
-            justifyContent: "space-between",
-            height: "100%",
-            background: "rgba(28,28,30,0.78)",
-            backdropFilter: "blur(14px)",
-            WebkitBackdropFilter: "blur(14px)",
-            borderRight: "1px solid rgba(255,255,255,0.06)",
-          }}>
-            {/* Top: wordmark + nav */}
-            <div>
-              {/* Wordmark */}
-              <div style={{ padding: "1.5rem 1rem 1rem" }}>
-                <button
-                  onClick={() => navigate({ view: "home" })}
-                  style={{
-                    background: "none", border: "none", cursor: "pointer", padding: 0,
-                    fontFamily: "var(--font-display)",
-                    fontWeight: 200,
-                    fontSize: "0.65rem",
-                    letterSpacing: "0.32em",
-                    color: G.white,
-                    display: "block",
-                  }}
-                >
-                  AURORA
-                </button>
-              </div>
-              <div style={{ height: 1, background: "rgba(255,255,255,0.06)", margin: "0 0 0" }} />
-
-              {/* Nav items */}
-              <div style={{ paddingTop: "1.5rem" }}>
-                {NAV_ITEMS.map(({ num, label, route: r }) => {
-                  const isActive = current === r.view;
-                  return (
-                    <button
-                      key={r.view}
-                      onClick={() => navigate(r)}
-                      style={{
-                        position: "relative",
-                        width: "100%",
-                        display: "flex", flexDirection: "column", alignItems: "flex-start",
-                        gap: 3,
-                        padding: "0.65rem 0.75rem 0.65rem 1.25rem",
-                        background: "none", border: "none", cursor: "pointer",
-                        textAlign: "left",
-                      }}
-                    >
-                      {/* Active accent bar */}
-                      {isActive && (
-                        <span style={{
-                          position: "absolute", left: 0, top: 0, bottom: 0,
-                          width: 2, background: G.ice,
-                        }} />
-                      )}
-                      <span style={{
-                        fontFamily: "monospace",
-                        fontSize: "0.40rem",
-                        letterSpacing: "0.14em",
-                        color: isActive ? G.ice : G.iron,
-                        transition: "color 0.2s ease",
-                      }}>{num}</span>
-                      <span style={{
-                        fontSize: "0.52rem",
-                        letterSpacing: "0.20em",
-                        color: isActive ? G.white : G.silver,
-                        transition: "color 0.2s ease",
-                      }}>{label}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Bottom: build string */}
-            <div style={{ padding: "1rem 1rem 1.25rem" }}>
-              <span style={{
-                fontFamily: "monospace",
-                fontSize: "0.40rem",
-                letterSpacing: "0.16em",
-                color: G.iron,
-              }}>AV.2029</span>
-            </div>
-          </div>
-        )}
-
-        {/* ── Main content area ─────────────────────────────────────── */}
-        <div
-          ref={containerRef}
-          style={{
-            gridRow: 1, gridColumn: isMobile ? 1 : 2,
-            height: "100%",
-            overflowY: "auto",
-            overflowX: "hidden",
-          }}
-        >
-          <AnimatePresence mode="wait">
-            <div key={routeKey(route)} style={{ height: "100%" }}>
-              {route.view === "home" && (
-                <HomeView navigate={navigate} containerRef={containerRef} />
-              )}
-              {route.view === "voyages" && (
-                <VoyagesView navigate={navigate} containerRef={containerRef} />
-              )}
-              {route.view === "voyage" && (
-                <VoyageDetailView
-                  id={route.id}
-                  navigate={navigate}
-                  containerRef={containerRef}
-                />
-              )}
-              {route.view === "fleet" && (
-                <FleetView navigate={navigate} />
-              )}
-              {route.view === "contact" && (
-                <ContactView navigate={navigate} />
-              )}
-            </div>
-          </AnimatePresence>
-        </div>
-      </div>
-
-      {/* Custom cursor — desktop only */}
-      <AuroraCursor />
-
-      {/* Exit button */}
-      <ExitButton />
     </div>
   );
 }
 
-// ── Exit button — white pill ───────────────────────────────────────────────────
-function ExitButton() {
-  const router       = useRouter();
-  const ref          = useRef<HTMLAnchorElement>(null);
-  const wrapRef      = useRef<HTMLDivElement>(null);
-  const reduce       = useReducedMotion();
-  const tilt         = useDeviceTilt();
-  const inView       = useInView(wrapRef);
-  const [hover, setHover]       = useState(false);
-  const [isDesktop, setDesktop] = useState(false);
-  const lastTouchRef = useRef(0);
+// ─── Planet labels (HTML overlay) ─────────────────────────────────────────────
+
+function PlanetLabels({
+  destinations,
+  hoveredId,
+  viewingId,
+  screenPosRef,
+  navPhase,
+}: {
+  destinations: typeof DESTINATIONS;
+  hoveredId: DestinationId | null;
+  viewingId: DestinationId | null;
+  screenPosRef: React.RefObject<Record<string, { x: number; y: number }>>;
+  navPhase: string;
+}) {
+  const [positions, setPositions] = useState<Record<string, { x: number; y: number }>>({});
 
   useEffect(() => {
-    setDesktop(window.matchMedia("(min-width: 768px)").matches);
-  }, []);
+    let rafId: number;
+    let last = "";
+    const loop = () => {
+      const snap = JSON.stringify(screenPosRef.current);
+      if (snap !== last) { last = snap; setPositions({ ...screenPosRef.current }); }
+      rafId = requestAnimationFrame(loop);
+    };
+    rafId = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(rafId);
+  }, [screenPosRef]);
 
-  const px  = useMotionValue(0);
-  const py  = useMotionValue(0);
-  const tsx = useSpring(px, { stiffness: 230, damping: 22, mass: 0.5 });
-  const tsy = useSpring(py, { stiffness: 230, damping: 22, mass: 0.5 });
-  const rotateX = useTransform(tsy, v => -v * 22);
-  const rotateY = useTransform(tsx, v =>  v * 22);
-
-  useEffect(() => {
-    if (!tilt?.enabled || !inView) return;
-    const apply = () => { px.set(tilt.tiltX.get() * 0.5); py.set(tilt.tiltY.get() * 0.5); };
-    apply();
-    const ux = tilt.tiltX.on("change", apply);
-    const uy = tilt.tiltY.on("change", apply);
-    return () => { ux(); uy(); px.set(0); py.set(0); };
-  }, [tilt, inView, px, py]);
-
-  const setOrigin = (clientX: number, clientY: number) => {
-    const el = ref.current;
-    if (!el) return;
-    const r = el.getBoundingClientRect();
-    el.style.setProperty("--x", `${((clientX - r.left)  / r.width)  * 100}%`);
-    el.style.setProperty("--y", `${((clientY - r.top)   / r.height) * 100}%`);
-  };
-
-  const setTiltFromPointer = (clientX: number, clientY: number) => {
-    if (reduce) return;
-    const r = ref.current?.getBoundingClientRect();
-    if (!r) return;
-    px.set((clientX - r.left) / r.width  - 0.5);
-    py.set((clientY - r.top)  / r.height - 0.5);
-  };
-  const resetTilt = () => { px.set(0); py.set(0); };
-
-  const pad = isDesktop ? "0.8rem 2.25rem" : "0.65rem 1.75rem";
-  const fz  = isDesktop ? "0.75rem"        : "0.65rem";
+  if (navPhase === "viewing") return null;
 
   return (
-    <motion.div
-      ref={wrapRef}
-      initial={reduce ? false : { opacity: 0, y: 24, scale: 0.88 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      transition={{ delay: 1.1, duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-      style={{ position: "fixed", bottom: 24, left: 24, zIndex: 600 }}
-    >
-      <motion.a
-        ref={ref}
-        href="/projects"
-        onClick={e => { e.preventDefault(); router.push("/projects"); }}
-        onPointerEnter={e => {
-          if (e.pointerType === "touch") return;
-          if (Date.now() - lastTouchRef.current < 600) return;
-          setOrigin(e.clientX, e.clientY); setHover(true);
-        }}
-        onPointerMove={e => { if (e.pointerType !== "touch") setTiltFromPointer(e.clientX, e.clientY); }}
-        onPointerLeave={e => { if (e.pointerType !== "touch") { setHover(false); resetTilt(); } }}
-        onPointerCancel={() => { setHover(false); resetTilt(); }}
-        onPointerDown={e => {
-          if (e.pointerType !== "touch") return;
-          lastTouchRef.current = Date.now();
-          setOrigin(e.clientX, e.clientY); setHover(true);
-        }}
-        whileHover={reduce ? {} : { y: -2 }}
-        whileTap={reduce   ? {} : { scale: 0.94 }}
-        transition={{ type: "spring", stiffness: 420, damping: 22 }}
-        style={{
-          display: "inline-flex", alignItems: "center", justifyContent: "center",
-          padding: pad,
-          background: "#ffffff",
-          borderRadius: 9999,
-          overflow: "hidden",
-          textDecoration: "none",
-          boxShadow: "0 6px 28px rgba(0,0,0,0.42)",
-          rotateX, rotateY,
-          transformPerspective: 600,
-          "--x": "50%",
-          "--y": "50%",
-        } as React.CSSProperties}
-      >
-        <span style={{
-          position: "relative", zIndex: 0,
-          display: "inline-flex", alignItems: "center", gap: 6,
-          color: "#080808", fontSize: fz, fontWeight: 500,
-          letterSpacing: "0.18em", fontFamily: "inherit", whiteSpace: "nowrap",
-        }}>
-          ← EXIT
-        </span>
+    <div style={{ position: "fixed", inset: 0, zIndex: 200, pointerEvents: "none" }}>
+      {destinations.map(d => {
+        const p = positions[d.id];
+        if (!p) return null;
+        const active = hoveredId === d.id || viewingId === d.id;
+        return (
+          <div
+            key={d.id}
+            style={{
+              position: "absolute",
+              left: p.x,
+              top: p.y,
+              transform: "translate(calc(-50% + 48px), -50%)",
+              pointerEvents: "none",
+              opacity: navPhase === "flying" ? 0 : 1,
+              transition: "opacity 0.4s ease",
+            }}
+          >
+            {/* Name */}
+            <div style={{
+              fontFamily: "monospace",
+              fontSize: "0.50rem",
+              letterSpacing: "0.20em",
+              color: active ? "#E8EDF5" : "rgba(169,179,196,0.55)",
+              whiteSpace: "nowrap",
+              transition: "color 0.2s",
+              textShadow: "0 1px 8px rgba(0,0,0,0.8)",
+            }}>
+              {d.name.toUpperCase()}
+            </div>
+            {/* Designation */}
+            <div style={{
+              fontFamily: "monospace",
+              fontSize: "0.38rem",
+              letterSpacing: "0.16em",
+              color: active ? "rgba(166,200,255,0.7)" : "rgba(169,179,196,0.28)",
+              whiteSpace: "nowrap",
+              marginTop: 1,
+              transition: "color 0.2s",
+            }}>
+              {d.designation}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
 
-        <span
-          aria-hidden
-          style={{
-            position: "absolute", inset: 0, zIndex: 10,
-            display: "flex", alignItems: "center", justifyContent: "center",
-            background: "#080808",
-            clipPath: hover ? "circle(150% at var(--x) var(--y))" : "circle(0% at var(--x) var(--y))",
-            transition: "clip-path 500ms ease-out",
-          }}
-        >
-          <span style={{
-            display: "inline-flex", alignItems: "center", gap: 6,
-            color: "#ffffff", fontSize: fz, fontWeight: 500,
-            letterSpacing: "0.18em", fontFamily: "inherit", whiteSpace: "nowrap",
-          }}>
-            ← EXIT
-          </span>
-        </span>
+// ─── Page ─────────────────────────────────────────────────────────────────────
 
-        <span aria-hidden style={{
-          pointerEvents: "none", position: "absolute",
-          top: 0, zIndex: 20, height: "100%", width: "33%",
-          left: hover ? "100%" : "-33%",
-          transform: "skewX(-12deg)",
-          background: "rgba(255,255,255,0.30)",
-          filter: "blur(4px)",
-          transition: "left 700ms ease-out",
-        }} />
-      </motion.a>
-    </motion.div>
+export default function AuroraPage() {
+  const router = useRouter();
+  const [navState, setNavState] = useState<NavState>({ phase: "map", targetId: null });
+  const [isExiting, setIsExiting] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  const [hoveredId, setHoveredId] = useState<DestinationId | null>(null);
+  const screenPosRef = useRef<Record<string, { x: number; y: number }>>({});
+
+  useEffect(() => {
+    setIsMobile(window.matchMedia("(max-width: 767px)").matches);
+  }, []);
+
+  const handleSelect = useCallback((id: DestinationId) => {
+    setNavState({ phase: "flying", targetId: id });
+  }, []);
+
+  const handleFlyComplete = useCallback(() => {
+    setNavState(s => ({ ...s, phase: "viewing" }));
+  }, []);
+
+  const handleClose = useCallback(() => {
+    setNavState({ phase: "map", targetId: null });
+  }, []);
+
+  const handleReturn = useCallback(() => {
+    setIsExiting(true);
+  }, []);
+
+  const handleWarpComplete = useCallback(() => {
+    router.push("/projects");
+  }, [router]);
+
+  const viewing = navState.phase === "viewing" ? navState.targetId : null;
+  const flying  = navState.phase === "flying"  ? navState.targetId : null;
+  const viewingDest = viewing ? DESTINATIONS.find(d => d.id === viewing) ?? null : null;
+
+  return (
+    <div style={{
+      position: "fixed", inset: "6px",
+      zIndex: 500,
+      background: "#030507",
+      borderRadius: 16,
+      overflow: "hidden",
+      boxShadow: "0 0 0 1px rgba(255,255,255,0.04), 0 32px 80px rgba(0,0,0,0.9)",
+    }}>
+      {/* Star map — full canvas */}
+      <CosmicMap
+        destinations={DESTINATIONS}
+        flyToId={flying ?? viewing}
+        viewingId={viewing}
+        onSelect={handleSelect}
+        onHover={setHoveredId}
+        onFlyComplete={handleFlyComplete}
+        screenPosRef={screenPosRef}
+      />
+
+      {/* Planet name labels */}
+      <PlanetLabels
+        destinations={DESTINATIONS}
+        hoveredId={hoveredId}
+        viewingId={viewing}
+        screenPosRef={screenPosRef}
+        navPhase={navState.phase}
+      />
+
+      {/* Info panel */}
+      <InfoPanel
+        destination={viewingDest}
+        isMobile={isMobile}
+        onClose={handleClose}
+      />
+
+      {/* Return button */}
+      <ReturnButton onClick={handleReturn} />
+
+      {/* Coordinate HUD — desktop only */}
+      {!isMobile && <CoordHud />}
+
+      {/* Custom cursor — desktop only */}
+      {!isMobile && <AuroraCursor />}
+
+      {/* Warp exit overlay */}
+      {isExiting && <WarpOverlay onComplete={handleWarpComplete} />}
+    </div>
   );
 }
