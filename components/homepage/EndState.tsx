@@ -60,17 +60,28 @@ export default function EndState({ progress }: Props) {
       className="pointer-events-none absolute inset-0 z-20 flex flex-col items-center justify-center px-8 text-center font-mono"
     >
       {/* Soft Graphite backing — reads as the lit focal wall so the content is
-          legible against the hall behind it, with no hard edge. */}
+          legible against the hall behind it, with no hard edge. Mobile gets a
+          taller, lower-centered ellipse so the whole focal stack (heading →
+          buttons, which is shifted down below) sits on the dark, not on the
+          bright hall above it. */}
       <div
         aria-hidden
-        className="pointer-events-none absolute left-1/2 top-1/2 h-[150vmin] w-[150vmin] -translate-x-1/2 -translate-y-1/2"
+        className="pointer-events-none absolute left-1/2 top-1/2 h-[176vmin] w-[150vmin] -translate-x-1/2 -translate-y-[44%] sm:hidden"
+        style={{
+          background:
+            "radial-gradient(ellipse 46% 42% at 50% 50%, rgba(15,17,21,0.94) 0%, rgba(15,17,21,0.82) 52%, rgba(15,17,21,0) 76%)",
+        }}
+      />
+      <div
+        aria-hidden
+        className="pointer-events-none absolute left-1/2 top-1/2 hidden h-[150vmin] w-[150vmin] -translate-x-1/2 -translate-y-1/2 sm:block"
         style={{
           background:
             "radial-gradient(ellipse 40% 36% at 50% 50%, rgba(15,17,21,0.94) 0%, rgba(15,17,21,0.82) 45%, rgba(15,17,21,0) 72%)",
         }}
       />
       <div
-        className="relative flex w-full max-w-2xl flex-col items-center"
+        className="relative flex w-full max-w-2xl flex-col items-center translate-y-[108px] sm:translate-y-0"
         style={{ pointerEvents: interactive ? "auto" : "none" }}
       >
         <p className="mb-7 text-[0.62rem] uppercase tracking-[0.5em] text-[var(--observatory-gold)]/70">

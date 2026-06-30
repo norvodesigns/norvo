@@ -9,6 +9,7 @@ import {
   useState,
 } from "react";
 import { AnimatePresence, motion, useMotionValue, type MotionValue } from "motion/react";
+import { usePathname } from "next/navigation";
 
 /* ──────────────────────────────────────────────────────────────────────────
    Device tilt provider
@@ -68,6 +69,10 @@ export function DeviceTiltProvider({ children }: { children: React.ReactNode }) 
   // "hidden" until we know the device supports it; "prompt" shows the popup.
   const [phase, setPhase] = useState<"hidden" | "prompt">("hidden");
 
+  // The gyroscope tilt parallax only exists on the Strata demo, so the popup is
+  // only meaningful there (it was misfiring on the homepage and every other route).
+  const pathname = usePathname();
+
   // Baseline orientation captured on the first reading == neutral position.
   const baseRef = useRef<{ beta: number; gamma: number } | null>(null);
 
@@ -126,6 +131,8 @@ export function DeviceTiltProvider({ children }: { children: React.ReactNode }) 
   // provider remounts mid-session (navigation, StrictMode, etc.).
   useEffect(() => {
     if (_promptShownThisSession) return;
+    // Only offer it where there's actually a tilt-driven 3D scene to steer.
+    if (!pathname?.startsWith("/projects/strata")) return;
     const isTouch =
       window.matchMedia?.("(pointer: coarse)").matches ?? "ontouchstart" in window;
     const hasOrientation = "DeviceOrientationEvent" in window;
@@ -133,7 +140,7 @@ export function DeviceTiltProvider({ children }: { children: React.ReactNode }) 
       setPhase("prompt");
       _promptShownThisSession = true;
     }
-  }, []);
+  }, [pathname]);
 
   const enable = async () => {
     try {
