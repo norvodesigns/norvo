@@ -6,20 +6,22 @@ import { MotionValue, useTransform, useReducedMotion } from "motion/react";
 import { BEATS } from "@/lib/timeline";
 import { useBind } from "./useBind";
 
-// The photoreal cinematic backdrop (AI-generated, Veo 3.1). Three clips are
-// SCROLL-SCRUBBED: scroll drives each video's currentTime, so the camera moves
-// with your scroll and holds when you stop. Light (just <video>, no canvas / no
-// big decoded-bitmap buffers) so it stays smooth on WebKit/Safari.
+// The photoreal cinematic backdrop — SCROLL-SCRUBBED on every platform: scroll
+// position drives each clip's currentTime (destination-driven, minimum-speed
+// follower), so the camera moves with you and holds when you stop.
 //
-// THE END-OF-SCROLL STUTTER, FIXED AT THE ROOT: scrubbing a video to the
-// SMOOTHED scroll position means that as Lenis eases to rest the playhead creeps
-// across frame boundaries slower and slower — the picture hitches twice before
-// it lands. The fix: drive currentTime from the scroll DESTINATION (Lenis's
-// targetScroll, which snaps to its final value the instant you stop) and close
-// the gap with a minimum-speed follower. There is always a gap to the
-// destination, so the playhead always advances ≥~1 frame/tick (frames present
-// steadily, never creep), then snaps the last sliver — a crisp landing, no
-// double-stutter. During active scroll it tracks normally.
+// iOS NOTE: two things must be true for the scrub to work on iOS, and both are
+// handled here + in page.tsx:
+//   1. Continuous scroll signal. iOS Safari freezes the main thread during a
+//      NATIVE touch-drag + momentum, so this rAF loop can't run mid-gesture. Lenis
+//      `syncTouch` (page.tsx) drives touch in JS instead, keeping the loop and the
+//      scroll value live every frame — without it the clip only jumped to its final
+//      frame after the finger lifted.
+//   2. A decoded, seekable <video>. iOS won't render a scrubbed clip until it has
+//      played once inside a user gesture, so we prime all three (play→pause) on the
+//      first touch/click — that forces the decode and unlocks currentTime rendering.
+// Together the scrub works on iOS exactly as it does on desktop Safari and Chrome.
+// muted + playsInline keep the priming legal inline on iOS.
 
 interface Props {
   progress: MotionValue<number>;
@@ -57,19 +59,55 @@ export default function MediaBackdrop({ progress, lenis }: Props) {
       return () => cancelAnimationFrame(raf);
     }
 
+    // Prime for iOS — force the decode + unlock currentTime rendering on the
+    // first user gesture (anywhere). Harmless on desktop. The clips are muted and
+    // either covered or at opacity 0, so the brief play→pause is never seen.
+    const els = [nebula.current, warp.current, hall.current];
+    const primed = new WeakSet<HTMLVideoElement>();
+    const prime = () => {
+      els.forEach((el) => {
+        if (!el || primed.has(el)) return;
+        const p = el.play();
+        if (p && typeof p.then === "function") {
+          p.then(() => {
+            el.pause();
+            primed.add(el);
+          }).catch(() => {
+            /* not buffered yet — a later gesture re-tries this clip */
+          });
+        } else {
+          el.pause();
+          primed.add(el);
+        }
+      });
+      // Re-armed on every gesture (NOT once): if a clip wasn't buffered on the
+      // first touch — e.g. warp.mp4 (14MB) on cellular — it still gets primed on a
+      // later one, so it can't get stuck showing only its poster. Detach once all
+      // three have actually decoded to a seekable frame.
+      if (els.every((el) => !el || (primed.has(el) && el.readyState >= 2))) {
+        window.removeEventListener("touchstart", prime);
+        window.removeEventListener("pointerdown", prime);
+      }
+    };
+    window.addEventListener("touchstart", prime, { passive: true });
+    window.addEventListener("pointerdown", prime);
+
+    // Scroll-scrub — destination-driven, minimum-speed follower. The destination
+    // (Lenis targetScroll) snaps to its final value the instant you stop, so the
+    // playhead always advances ≥~1 frame/tick (no decel creep), then lands.
     const cur: Record<string, number> = { nebula: 0, warp: 0, hall: 0 };
     let raf = 0;
     const frac = (v: number, a: number, b: number) => Math.min(1, Math.max(0, (v - a) / (b - a)));
-
-    // Minimum-speed follower toward the destination frame. The min step keeps
-    // the playhead advancing ≥~1 video-frame per tick (no slow creep); the snap
-    // lands the last sliver instantly.
-    const drive = (el: HTMLVideoElement | null, key: string, f: number, span: number) => {
+    const drive = (el: HTMLVideoElement | null, key: string, f: number, span: number, dtScale: number) => {
       if (!el || el.readyState < 2 || !isFinite(el.duration)) return;
       const target = f * el.duration * span;
       const d = target - cur[key];
       const ad = Math.abs(d);
-      cur[key] = ad < 0.035 ? target : cur[key] + Math.sign(d) * Math.max(ad * 0.3, 0.045);
+      // The follower step is scaled by the real frame delta so the playhead chases
+      // at the same wall-clock speed regardless of refresh rate. dtScale === 1 at
+      // 60Hz (desktop is unchanged); on a 120Hz ProMotion iPhone an unscaled fixed
+      // step would advance ~2× too fast.
+      cur[key] = ad < 0.035 ? target : cur[key] + Math.sign(d) * Math.max(ad * 0.3, 0.045) * dtScale;
       if (Math.abs(el.currentTime - cur[key]) > 0.01) {
         try {
           el.currentTime = cur[key];
@@ -78,19 +116,26 @@ export default function MediaBackdrop({ progress, lenis }: Props) {
         }
       }
     };
-
-    const loop = () => {
+    let prev = 0;
+    const loop = (t: number) => {
+      // Normalize to a 60Hz frame; cap at 2 so a long stalled frame (tab refocus)
+      // can't lurch the playhead.
+      const dtScale = prev ? Math.min(2, (t - prev) / 16.667) : 1;
+      prev = t;
       const l = lenis?.current;
-      // Destination progress — where the scroll is HEADED. Snaps to its final
-      // value the moment you stop, so the videos settle instead of creeping.
       const v = l && l.limit > 0 ? l.targetScroll / l.limit : progress.get();
-      drive(nebula.current, "nebula", frac(v, NEB_IN, NEB_OUT), 1);
-      drive(warp.current, "warp", frac(v, wStart, wEnd), 1);
-      drive(hall.current, "hall", frac(v, obsStart, HALL_SETTLE), 0.92);
+      drive(nebula.current, "nebula", frac(v, NEB_IN, NEB_OUT), 1, dtScale);
+      drive(warp.current, "warp", frac(v, wStart, wEnd), 1, dtScale);
+      drive(hall.current, "hall", frac(v, obsStart, HALL_SETTLE), 0.92, dtScale);
       raf = requestAnimationFrame(loop);
     };
     raf = requestAnimationFrame(loop);
-    return () => cancelAnimationFrame(raf);
+
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener("touchstart", prime);
+      window.removeEventListener("pointerdown", prime);
+    };
   }, [reduce, progress, lenis]);
 
   const cover = "absolute inset-0 h-full w-full object-cover";
@@ -107,7 +152,7 @@ export default function MediaBackdrop({ progress, lenis }: Props) {
   );
 }
 
-// One-shot still for reduced motion; returns true once set (or already set).
+// Reduced motion: hold a representative still.
 function still(el: HTMLVideoElement | null, t: number) {
   if (!el) return true;
   if (el.readyState < 1) return false;

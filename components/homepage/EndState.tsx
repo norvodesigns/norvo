@@ -45,12 +45,12 @@ export default function EndState({ progress }: Props) {
     setInteractive((cur) => (cur === live ? cur : live));
   });
 
+  // Visibility comes from the section's scroll-driven opacity (useBind) above, so
+  // the CTA can never get stuck hidden by a state latch that didn't fire. `arrived`
+  // only adds a subtle upward settle once the room is reached.
   const settle = (delay: number) => ({
-    opacity: arrived ? 1 : 0,
     transform: arrived ? "translateY(0)" : "translateY(14px)",
-    transition: reduce
-      ? "opacity 0.4s ease"
-      : `opacity 0.7s ${EASE} ${delay}s, transform 0.7s ${EASE} ${delay}s`,
+    transition: reduce ? "transform 0.4s ease" : `transform 0.7s ${EASE} ${delay}s`,
   });
 
   return (

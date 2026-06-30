@@ -32,7 +32,8 @@ export default function Home() {
   // Smooth scroll — replaces the OS's inertial momentum (which was stuttering as
   // it decayed) with a controlled lerp. The whole journey, including the video
   // scrub, reads from this smoothed scroll, so motion is uniformly buttery.
-  // Smooth wheel/trackpad only; touch stays native (iOS-safe).
+  // Smooth on wheel/trackpad AND touch: syncTouch drives the scroll in JS on
+  // mobile too, which is what makes the video scrub scroll-linked there (see below).
   useEffect(() => {
     // The Ascent is a fixed journey that must always begin at the Threshold.
     // Disable the browser's scroll restoration and force the top, or a reload
@@ -42,7 +43,25 @@ export default function Home() {
       history.scrollRestoration = "manual";
     }
     window.scrollTo(0, 0);
-    const lenis = new Lenis({ lerp: 0.12, smoothWheel: true, wheelMultiplier: 0.9 });
+    // syncTouch is the key to the mobile video scrub. iOS Safari freezes the main
+    // thread — requestAnimationFrame AND scroll events — for the whole duration of
+    // a native touch-drag and its momentum, so a scroll-linked rAF loop (the video
+    // scrubber in MediaBackdrop) can't run mid-gesture; the clip only jumped to its
+    // final frame once the finger lifted. syncTouch makes Lenis own touch scrolling
+    // in JS (intercept touchmove → scrollTo), so scroll advances continuously, the
+    // rAF loop fires every frame, and the playhead tracks the finger in lockstep —
+    // the same scroll-linked scrub the wheel already gets on desktop. This path is
+    // plain scroll/transform, never WAAPI, so it's unaffected by the WebKit crash.
+    const lenis = new Lenis({
+      lerp: 0.12,
+      smoothWheel: true,
+      wheelMultiplier: 0.9,
+      syncTouch: true,
+      syncTouchLerp: 0.1, // touch-release inertia smoothing (snappier than the 0.075 default so the clip settles promptly)
+      touchMultiplier: 1.1, // finger-travel → scroll ratio; nudged above 1:1 to offset the lack of native touch acceleration
+      touchInertiaExponent: 1.5, // flatter than the 1.7 default: the scrub follows targetScroll (the destination) while the
+      // eras follow the smoothed scroll, so a hard flick could throw the video far ahead — a gentler inertia keeps them together
+    });
     lenisRef.current = lenis;
     lenis.scrollTo(0, { immediate: true });
     let raf = 0;

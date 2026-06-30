@@ -37,8 +37,9 @@ html {
 }
 
 /* Lenis smooth scroll (homepage) — replaces the OS's janky trackpad inertia with
-   a controlled lerp so momentum never stutters. Smooth wheel only; touch stays
-   native (iOS-safe). */
+   a controlled lerp so momentum never stutters. Smooth on wheel AND touch
+   (syncTouch): JS-driven touch scrolling is what keeps the video scrub
+   scroll-linked on mobile (see app/page.tsx). */
 html.lenis,
 html.lenis body {
   height: auto;
@@ -57,7 +58,12 @@ body {
   background: var(--graphite);
   color: var(--archive-white);
   font-family: var(--font-geist-mono), ui-monospace, monospace;
-  overflow-x: hidden;
+  /* `clip`, NOT `hidden`: `overflow-x: hidden` makes <body> a scroll container
+     (overflow-y computes to auto), which breaks `position: sticky` on iOS Safari
+     — the sticky stage (and the eras + Observatory CTA inside it) would scroll
+     away, leaving only the fixed video backdrop. `clip` hides the horizontal
+     overflow without creating a scroll container, so sticky pins to the viewport. */
+  overflow-x: clip;
 }
 
 .text-gradient {
