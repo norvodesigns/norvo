@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import Button from "@/components/Button";
 
-const COLORS = ["#0D7A7A", "#D9A441", "#ffffff", "#5bbfbf", "#f0c060", "#0a5a5a", "#e8b84b"];
+const COLORS = ["#6D5DFB", "#D8B46A", "#F4F5F7", "#A89DFF", "#f0c060", "#4433CC", "#e8b84b"];
 
 function spawnBurst(canvas: HTMLCanvasElement) {
   // getContext("2d") only returns null on OffscreenCanvas; safe to assert here
@@ -92,7 +92,8 @@ export default function SubmitSuccess({
       initial={reduce ? false : { opacity: 0, y: 24 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-      className="relative overflow-hidden rounded-2xl border border-black/10 px-8 py-14 text-center"
+      className="relative overflow-hidden rounded-2xl px-8 py-14 text-center"
+      style={{ border: "1px solid rgba(244,245,247,0.08)", background: "rgba(244,245,247,0.02)" }}
     >
       <canvas
         ref={canvasRef}
@@ -109,7 +110,7 @@ export default function SubmitSuccess({
         whileHover={{ scale: 1.1 }}
         whileTap={{ scale: 0.85 }}
         className="relative mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full text-2xl text-white shadow-lg"
-        style={{ background: "linear-gradient(120deg,#0D7A7A,#D9A441)" }}
+        style={{ background: "linear-gradient(120deg, #6D5DFB, #D8B46A)" }}
         aria-label="Celebrate again"
       >
         ✓
@@ -117,14 +118,14 @@ export default function SubmitSuccess({
           <>
             <motion.span
               className="absolute inset-0 rounded-full"
-              style={{ border: "2px solid #0D7A7A" }}
+              style={{ border: "2px solid #6D5DFB" }}
               initial={{ scale: 1, opacity: 0.7 }}
               animate={{ scale: 2.4, opacity: 0 }}
               transition={{ delay: 0.5, duration: 1.3, ease: "easeOut", repeat: Infinity, repeatDelay: 2.2 }}
             />
             <motion.span
               className="absolute inset-0 rounded-full"
-              style={{ border: "2px solid #D9A441" }}
+              style={{ border: "2px solid #D8B46A" }}
               initial={{ scale: 1, opacity: 0.5 }}
               animate={{ scale: 2.0, opacity: 0 }}
               transition={{ delay: 0.8, duration: 1.3, ease: "easeOut", repeat: Infinity, repeatDelay: 2.2 }}
@@ -146,7 +147,7 @@ export default function SubmitSuccess({
         initial={reduce ? false : { opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.45, duration: 0.5 }}
-        className="mx-auto mt-3 max-w-md text-black/55"
+        className="mx-auto mt-3 max-w-md text-[var(--archive-white)]/50"
       >
         {body}
       </motion.div>
@@ -167,7 +168,7 @@ export default function SubmitSuccess({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 1.4, duration: 0.6 }}
-          className="mt-5 text-xs text-black/25"
+          className="mt-5 text-xs text-[var(--archive-white)]/20"
         >
           Tap ✓ to celebrate
         </motion.p>

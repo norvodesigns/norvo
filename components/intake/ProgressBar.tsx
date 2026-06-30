@@ -14,16 +14,19 @@ export function ProgressBar({
   const pct = ((step + 1) / total) * 100;
   return (
     <div className="mb-10">
-      <div className="mb-3 flex items-center justify-between text-xs text-black/40">
+      <div className="mb-3 flex items-center justify-between text-xs text-[var(--archive-white)]/30">
         <span>
           Step {step + 1} of {total}
         </span>
-        <span className="font-medium text-black/60">{labels[step]}</span>
+        <span className="font-medium text-[var(--archive-white)]/50">{labels[step]}</span>
       </div>
-      <div className="h-1.5 w-full overflow-hidden rounded-full bg-black/[0.06]">
+      <div
+        className="h-px w-full overflow-hidden"
+        style={{ background: "rgba(244,245,247,0.08)" }}
+      >
         <motion.div
-          className="h-full rounded-full"
-          style={{ background: "linear-gradient(120deg,#0D7A7A,#D9A441)" }}
+          className="h-full"
+          style={{ background: "linear-gradient(120deg, #6D5DFB, #D8B46A)" }}
           animate={{ width: `${pct}%` }}
           transition={{ type: "spring", stiffness: 120, damping: 20 }}
         />

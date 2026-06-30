@@ -8,13 +8,12 @@ import { useDeviceTilt } from "./DeviceTilt";
 type Props = {
   href?: string;
   children: React.ReactNode;
-  variant?: "primary" | "secondary" | "blue";
+  variant?: "primary" | "secondary" | "ghost";
   size?: "sm" | "md";
   withArrow?: boolean;
   dark?: boolean;
   className?: string;
   onClick?: () => void;
-  /** disable the 3D tilt (e.g. inside an already-tilting container) */
   noTilt?: boolean;
   type?: "button" | "submit";
   disabled?: boolean;
@@ -38,20 +37,16 @@ export default function Button({
   const [hover, setHover] = useState(false);
   const router = useRouter();
 
-  // ── 3D tilt: cursor over the button on desktop, gyroscope on mobile ──
   const reduce = useReducedMotion();
   const tilt = useDeviceTilt();
   const inView = useInView(ref);
-  const px = useMotionValue(0); // −0.5 … +0.5
+  const px = useMotionValue(0);
   const py = useMotionValue(0);
-  // Critically damped (no overshoot) so the post-scroll catch-up glides home.
   const tsx = useSpring(px, { stiffness: 230, damping: 22, mass: 0.5 });
   const tsy = useSpring(py, { stiffness: 230, damping: 22, mass: 0.5 });
   const rotateX = useTransform(tsy, (v) => -v * 22);
   const rotateY = useTransform(tsx, (v) => v * 22);
 
-  // Only an on-screen button subscribes to the gyro — keeps offscreen buttons
-  // (e.g. the CTA at the bottom of the page) from running springs as you tilt.
   useEffect(() => {
     if (noTilt || reduce || !tilt?.enabled || !inView) return;
     const apply = () => {
@@ -72,7 +67,7 @@ export default function Button({
     el.style.setProperty("--y", `${((clientY - r.top) / r.height) * 100}%`);
   };
 
-  const setTilt = (clientX: number, clientY: number) => {
+  const setTiltFrom = (clientX: number, clientY: number) => {
     if (noTilt || reduce) return;
     const r = ref.current?.getBoundingClientRect();
     if (!r) return;
@@ -81,7 +76,6 @@ export default function Button({
   };
   const resetTilt = () => { px.set(0); py.set(0); };
 
-  // Safety net: clear stuck hover whenever pointer moves outside
   useEffect(() => {
     if (!hover) return;
     const check = (e: PointerEvent) => {
@@ -97,13 +91,13 @@ export default function Button({
   }, [hover]);
 
   const primary = variant === "primary";
-  const isBlue = variant === "blue";
   const pad = size === "sm" ? "px-5 py-2.5" : "px-8 py-4";
-  const grad = "linear-gradient(120deg,#0D7A7A,#D9A441)";
-  const baseBg    = (primary || isBlue) ? grad : "transparent";
-  const baseColor = (primary || isBlue) ? "#ffffff" : dark ? "rgba(255,255,255,0.7)" : "#0a0a0a";
-  const hoverBg   = (primary || isBlue) ? "#ffffff" : grad;
-  const hoverColor = (primary || isBlue) ? "#0D7A7A" : "#ffffff";
+  const grad = "linear-gradient(120deg, #6D5DFB, #D8B46A)";
+
+  const baseBg = primary ? grad : "transparent";
+  const baseColor = primary ? "#ffffff" : "var(--archive-white)";
+  const hoverBg = primary ? "#ffffff" : grad;
+  const hoverColor = primary ? "#6D5DFB" : "#14161A";
 
   const sharedProps = {
     onPointerEnter: (e: React.PointerEvent) => {
@@ -111,10 +105,7 @@ export default function Button({
       if (Date.now() - lastTouchRef.current < 600) return;
       setOrigin(e.clientX, e.clientY); setHover(true);
     },
-    onPointerMove: (e: React.PointerEvent) => { if (!disabled && e.pointerType !== "touch") setTilt(e.clientX, e.clientY); },
-    // A touch tap "sticks" like a held desktop hover: keep the fill engaged
-    // after the tap. Only a real mouse leaving — or a cancelled gesture such as
-    // a scroll — turns it back off.
+    onPointerMove: (e: React.PointerEvent) => { if (!disabled && e.pointerType !== "touch") setTiltFrom(e.clientX, e.clientY); },
     onPointerLeave: (e: React.PointerEvent) => { if (e.pointerType !== "touch") { setHover(false); resetTilt(); } },
     onPointerCancel: () => { setHover(false); resetTilt(); },
     onPointerDown: (e: React.PointerEvent) => {
@@ -125,10 +116,10 @@ export default function Button({
     whileHover: disabled ? {} : { y: -2 },
     whileTap: disabled ? {} : { scale: 0.94 },
     transition: { type: "spring", stiffness: 420, damping: 22 },
-    className: `group relative inline-flex items-center justify-center overflow-hidden rounded-full text-sm font-medium ${pad} ${
+    className: `group relative inline-flex items-center justify-center overflow-hidden rounded-full text-sm font-medium tracking-wide ${pad} ${
       primary
-        ? "shadow-lg shadow-teal-600/25 hover:shadow-xl hover:shadow-teal-600/30"
-        : dark ? "border border-white/[0.18]" : "border border-black/15"
+        ? "shadow-lg shadow-[#6D5DFB]/20 hover:shadow-xl hover:shadow-[#6D5DFB]/30"
+        : "border border-[var(--border-strong)]"
     } disabled:cursor-not-allowed disabled:opacity-40 ${className}`,
     style: { background: baseBg, rotateX, rotateY, transformPerspective: 600, "--x": "50%", "--y": "50%" } as React.CSSProperties,
   };
@@ -139,7 +130,6 @@ export default function Button({
         {children}
         {withArrow && <span className="transition-transform duration-300 group-hover:translate-x-1">→</span>}
       </span>
-
       <span
         aria-hidden
         className="absolute inset-0 z-10 flex items-center justify-center transition-[clip-path] duration-500 ease-out"
@@ -153,13 +143,10 @@ export default function Button({
           {withArrow && <span className="transition-transform duration-300 group-hover:translate-x-1">→</span>}
         </span>
       </span>
-
-      <span className="pointer-events-none absolute -left-1/3 top-0 z-20 h-full w-1/3 -skew-x-12 bg-white/30 blur-md transition-[left] duration-700 ease-out group-hover:left-full" />
+      <span className="pointer-events-none absolute -left-1/3 top-0 z-20 h-full w-1/3 -skew-x-12 bg-white/20 blur-md transition-[left] duration-700 ease-out group-hover:left-full" />
     </>
   );
 
-  // sharedProps event handlers are compatible with both element types at runtime;
-  // cast avoids TypeScript's element-specific pointer-event generics.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const spread = sharedProps as any;
 

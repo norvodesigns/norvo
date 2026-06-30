@@ -1,21 +1,123 @@
-import Hero from "@/components/Hero";
-import Projects from "@/components/Projects";
-import CapabilitySpheresClient from "@/components/CapabilitySpheresClient";
-import ServicesHome from "@/components/ServicesHome";
-import DepthDemo from "@/components/DepthDemo";
-import Process from "@/components/Process";
-import CtaSection from "@/components/CtaSection";
+"use client";
+
+import { useRef, useState, useEffect } from "react";
+import Lenis from "lenis";
+import { useScroll, useTransform } from "motion/react";
+import { SCROLL_VH } from "@/lib/timeline";
+import { useBind } from "@/components/homepage/useBind";
+
+import IntroOverlay from "@/components/homepage/IntroOverlay";
+import Era01 from "@/components/homepage/Era01";
+import Era02 from "@/components/homepage/Era02";
+import Era03 from "@/components/homepage/Era03";
+import Era04 from "@/components/homepage/Era04";
+import EndState from "@/components/homepage/EndState";
+import HomepageNav from "@/components/homepage/HomepageNav";
+import MediaBackdrop from "@/components/homepage/MediaBackdrop";
+import ArchiveFrame from "@/components/homepage/ArchiveFrame";
 
 export default function Home() {
+  const [introComplete, setIntroComplete] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const bgRef = useRef<HTMLDivElement>(null);
+  const archiveEnvRef = useRef<HTMLDivElement>(null);
+
+  const lenisRef = useRef<Lenis | null>(null);
+
+  const { scrollYProgress } = useScroll({
+    target: containerRef,
+    offset: ["start start", "end end"],
+  });
+
+  // Smooth scroll — replaces the OS's inertial momentum (which was stuttering as
+  // it decayed) with a controlled lerp. The whole journey, including the video
+  // scrub, reads from this smoothed scroll, so motion is uniformly buttery.
+  // Smooth wheel/trackpad only; touch stays native (iOS-safe).
+  useEffect(() => {
+    // The Ascent is a fixed journey that must always begin at the Threshold.
+    // Disable the browser's scroll restoration and force the top, or a reload
+    // from deep in the page lands mid-journey (it restores scrollY to the old
+    // position, so scrollYProgress reads ~1 and skips straight to the Observatory).
+    if (typeof history !== "undefined" && "scrollRestoration" in history) {
+      history.scrollRestoration = "manual";
+    }
+    window.scrollTo(0, 0);
+    const lenis = new Lenis({ lerp: 0.12, smoothWheel: true, wheelMultiplier: 0.9 });
+    lenisRef.current = lenis;
+    lenis.scrollTo(0, { immediate: true });
+    let raf = 0;
+    const loop = (t: number) => {
+      lenis.raf(t);
+      raf = requestAnimationFrame(loop);
+    };
+    raf = requestAnimationFrame(loop);
+    return () => {
+      cancelAnimationFrame(raf);
+      lenis.destroy();
+      lenisRef.current = null;
+    };
+  }, []);
+
+  // Lock scroll until the Threshold hands over control (via Lenis, not a raw
+  // overflow toggle, so the two never fight).
+  useEffect(() => {
+    const lenis = lenisRef.current;
+    if (introComplete) lenis?.start();
+    else lenis?.stop();
+  }, [introComplete]);
+
+  // The eras now live inside the dark NORVO Data Archive — a deep Graphite field
+  // throughout Records 1–3, which lifts away entering Experiences to reveal the
+  // photoreal cinematic backdrop (nebula → warp → Observatory).
+  const bgOpacity = useTransform(scrollYProgress, [0.39, 0.46], [1, 0]);
+  useBind(bgRef, { opacity: bgOpacity });
+  // The archive environment — a faint engineered grid, present while you browse
+  // the records, fading as the live experience (nebula) takes over.
+  const envOpacity = useTransform(scrollYProgress, [0, 0.02, 0.37, 0.43], [0, 1, 1, 0]);
+  useBind(archiveEnvRef, { opacity: envOpacity });
+
   return (
-    <main>
-      <Hero />
-      <Projects />
-      <CapabilitySpheresClient />
-      <ServicesHome />
-      <DepthDemo />
-      <Process />
-      <CtaSection />
-    </main>
+    <>
+      <IntroOverlay progress={scrollYProgress} onComplete={() => setIntroComplete(true)} />
+
+      {/* Persistent chrome — always reachable (Usability Covenant) */}
+      <HomepageNav progress={scrollYProgress} introComplete={introComplete} />
+
+      {/* The archive HUD — year readout + timeline scrubber over Records 1–3 */}
+      <ArchiveFrame progress={scrollYProgress} />
+
+      {/* Photoreal cinematic backdrop — fixed behind everything; the paper arc
+          above covers it through Documents/Pages/Interfaces, then lifts to reveal
+          it from Experiences onward. */}
+      <MediaBackdrop progress={scrollYProgress} lenis={lenisRef} />
+
+      {/* Scroll driver */}
+      <div ref={containerRef} style={{ height: `${SCROLL_VH}vh` }}>
+        <div className="sticky top-0 z-10 h-screen w-full overflow-hidden">
+          {/* The dark archive ground — lifts away to reveal the cinematic film */}
+          <div ref={bgRef} className="pointer-events-none absolute inset-0 bg-[#0E1014]" />
+          {/* The archive environment — faint engineered grid + a centering vignette */}
+          <div
+            ref={archiveEnvRef}
+            aria-hidden
+            className="pointer-events-none absolute inset-0"
+            style={{
+              opacity: 0,
+              backgroundImage:
+                "radial-gradient(ellipse 70% 60% at 50% 45%, rgba(109,93,251,0.06), transparent 70%), linear-gradient(rgba(244,245,247,0.022) 1px, transparent 1px), linear-gradient(90deg, rgba(244,245,247,0.022) 1px, transparent 1px)",
+              backgroundSize: "100% 100%, 64px 64px, 64px 64px",
+              maskImage: "radial-gradient(ellipse 95% 88% at 50% 50%, #000 45%, transparent 92%)",
+              WebkitMaskImage: "radial-gradient(ellipse 95% 88% at 50% 50%, #000 45%, transparent 92%)",
+            }}
+          />
+
+          <Era01 progress={scrollYProgress} />
+          <Era02 progress={scrollYProgress} />
+          <Era03 progress={scrollYProgress} />
+          <Era04 progress={scrollYProgress} />
+          <EndState progress={scrollYProgress} />
+        </div>
+      </div>
+    </>
   );
 }

@@ -1,37 +1,62 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #0a0a0a;
+  --graphite: #14161A;
+  --archive-white: #F4F5F7;
+  --norvo-violet: #6D5DFB;
+  --observatory-gold: #D8B46A;
 
-  --norvo-teal: #0D7A7A;
-  --norvo-gold: #D9A441;
-  --norvo-gradient: linear-gradient(120deg, var(--norvo-teal), var(--norvo-gold));
+  --background: var(--graphite);
+  --foreground: var(--archive-white);
+
+  --surface: rgba(244, 245, 247, 0.04);
+  --surface-strong: rgba(244, 245, 247, 0.08);
+  --border: rgba(244, 245, 247, 0.1);
+  --border-strong: rgba(244, 245, 247, 0.2);
+
+  --norvo-gradient: linear-gradient(120deg, var(--norvo-violet), var(--observatory-gold));
 }
 
 @theme {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --color-norvo-teal: var(--norvo-teal);
-  --color-norvo-gold: var(--norvo-gold);
-  --font-sans: var(--font-geist), system-ui, sans-serif;
-  --font-display: var(--font-sora), system-ui, sans-serif;
+  --color-graphite: var(--graphite);
+  --color-archive-white: var(--archive-white);
+  --color-norvo-violet: var(--norvo-violet);
+  --color-observatory-gold: var(--observatory-gold);
+  --color-surface: var(--surface);
+  --font-sans: var(--font-geist-mono), ui-monospace, monospace;
+  --font-display: var(--font-geist-mono), ui-monospace, monospace;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
 }
 
 html {
-  /* With no viewport-fit=cover, iOS fills the safe-area strip above the nav
-     (beside/around the Dynamic Island) with the root background-color. Keep it
-     white so that strip reads as blank — nothing shows above the navbar. */
-  background: var(--background);
-  scroll-behavior: smooth;
+  background: var(--graphite);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* Lenis smooth scroll (homepage) — replaces the OS's janky trackpad inertia with
+   a controlled lerp so momentum never stutters. Smooth wheel only; touch stays
+   native (iOS-safe). */
+html.lenis,
+html.lenis body {
+  height: auto;
+}
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+.lenis.lenis-smooth [data-lenis-prevent] {
+  overscroll-behavior: contain;
+}
+.lenis.lenis-stopped {
+  overflow: clip;
+}
+
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-geist), system-ui, sans-serif;
+  background: var(--graphite);
+  color: var(--archive-white);
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
   overflow-x: hidden;
 }
 
@@ -40,4 +65,127 @@ body {
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
+}
+
+.glass {
+  background: rgba(244, 245, 247, 0.04);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--border);
+}
+
+.glass-strong {
+  background: rgba(244, 245, 247, 0.08);
+  backdrop-filter: blur(32px);
+  -webkit-backdrop-filter: blur(32px);
+  border: 1px solid var(--border-strong);
+}
+
+/* Cursor blink for terminal effects */
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+.cursor-blink {
+  animation: blink 1.1s step-end infinite;
+}
+
+/* ── Ambient homepage motion (CSS, not WAAPI) ──────────────────────────────
+   These infinite pulse/bloom/shimmer loops are CSS keyframes rather than
+   motion `animate` props: WebKit's Web Animations API throws on keyframe-array
+   transform animations, and the compositor handles these more cheaply anyway. */
+@keyframes norvo-cursor { 0%, 100% { opacity: 1; } 50% { opacity: 0.33; } }
+@keyframes norvo-fadepulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+@keyframes norvo-spark-glow {
+  0%, 100% { opacity: 0.5; transform: scale(1); }
+  50% { opacity: 0.15; transform: scale(1.7); }
+}
+@keyframes norvo-spark-pulse {
+  0%, 100% { opacity: 0.7; transform: scale(1); }
+  50% { opacity: 0.2; transform: scale(1.8); }
+}
+@keyframes norvo-spark-bloom {
+  0% { opacity: 0; transform: scale(0); }
+  60% { opacity: 0.5; transform: scale(1.6); }
+  100% { opacity: 0.3; transform: scale(1.2); }
+}
+@keyframes norvo-pool-a {
+  0%, 100% { opacity: 0.6; transform: scale(1); }
+  50% { opacity: 0.95; transform: scale(1.08); }
+}
+@keyframes norvo-pool-b {
+  0%, 100% { opacity: 0.5; transform: scale(1.05); }
+  50% { opacity: 0.85; transform: scale(1); }
+}
+@keyframes norvo-shimmer {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 220% 50%; }
+}
+
+.norvo-anim-cursor { animation: norvo-cursor 2s ease-in-out infinite; }
+.norvo-anim-fadepulse { animation: norvo-fadepulse 2s ease-in-out infinite; }
+.norvo-anim-glow { animation: norvo-spark-glow 2s ease-in-out infinite; }
+.norvo-anim-pulse { animation: norvo-spark-pulse 2s ease-in-out infinite; }
+.norvo-anim-bloom { animation: norvo-spark-bloom 1.1s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.norvo-anim-poola { animation: norvo-pool-a 9s ease-in-out infinite; }
+.norvo-anim-poolb { animation: norvo-pool-b 11s ease-in-out infinite; }
+.norvo-anim-shimmer { animation: norvo-shimmer 9s linear infinite; }
+
+@keyframes norvo-revealup {
+  0% { opacity: 0; transform: translateY(8px); }
+  100% { opacity: 1; transform: none; }
+}
+.norvo-anim-revealup { animation: norvo-revealup 0.9s cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+/* The scroll cue — a down-arrow that gently bobs, inviting the descent */
+@keyframes norvo-scrollcue {
+  0%, 100% { transform: translateY(0); opacity: 0.45; }
+  50% { transform: translateY(7px); opacity: 1; }
+}
+.norvo-anim-scrollcue { animation: norvo-scrollcue 1.8s ease-in-out infinite; }
+
+/* The Bloom (slow flow) — Era 4 / Observatory: the Signature Gradient stops
+   being a static fill and behaves like a living thing, violet flowing into gold
+   across the key words. Pair with a wide background-size and bg-clip:text. */
+@keyframes norvo-gradient-flow {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+.norvo-anim-gradient-flow {
+  background-size: 240% 100%;
+  animation: norvo-gradient-flow 8s ease-in-out infinite;
+}
+
+/* The Drift — a slow, weightless, breath-paced float for suspended atmosphere
+   (Era 4 deep-band motes, gathered light). Never starts or stops sharply. */
+@keyframes norvo-drift {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  50% { transform: translate3d(0, -2.2%, 0); }
+}
+.norvo-anim-drift { animation: norvo-drift 14s ease-in-out infinite; }
+
+/* The Pulse (open door) — the Observatory CTA's quiet heartbeat: a soft halo
+   breathing brighter and softer at a calm cadence. Marks "alive, actionable." */
+@keyframes norvo-cta-glow {
+  0%, 100% { opacity: 0.35; transform: scale(1); }
+  50% { opacity: 0.7; transform: scale(1.05); }
+}
+.norvo-anim-cta-glow { animation: norvo-cta-glow 3.6s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  /* Quiet movement, but never hide meaning: ambient loops settle to their
+     resting frame (elements keep their natural, visible state). Scroll-linked
+     reveals (useBind) remain — they are gentle cross-fades by nature, and the
+     parallax pointer/tilt inputs self-disable under reduced motion. */
+  [class*="norvo-anim-"] { animation: none !important; }
+  /* keep the flowing gradient legible as a static violet→gold fill */
+  .norvo-anim-gradient-flow { background-position: 50% 50%; }
+}
+
+/* CRT scanline effect for Era 01 */
+@keyframes scanline {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(100vh); }
 }

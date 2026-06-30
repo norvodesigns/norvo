@@ -27,7 +27,7 @@ const STEPS = ["Project", "Vision", "Style", "Structure", "Budget", "Review"];
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const inputCls =
-  "w-full rounded-lg border border-black/15 px-4 py-3 text-sm outline-none transition focus:border-[#0D7A7A] focus:ring-2 focus:ring-[#0D7A7A]/20";
+  "w-full rounded-xl border border-[rgba(244,245,247,0.12)] bg-transparent px-4 py-3.5 text-sm text-[var(--archive-white)] outline-none transition placeholder:text-[var(--archive-white)]/20 focus:border-[var(--norvo-violet)] focus:ring-2 focus:ring-[var(--norvo-violet)]/10";
 const ease = [0.22, 1, 0.36, 1] as const;
 
 export default function ProjectIntake() {
@@ -182,8 +182,8 @@ export default function ProjectIntake() {
 
   const label = (t: string, hint?: string) => (
     <div className="mb-3">
-      <p className="text-sm font-medium text-black/80">{t}</p>
-      {hint && <p className="mt-0.5 text-xs text-black/40">{hint}</p>}
+      <p className="text-[10px] tracking-[0.3em] text-[var(--archive-white)]/40 uppercase">{t}</p>
+      {hint && <p className="mt-1 text-xs text-[var(--archive-white)]/30">{hint}</p>}
     </div>
   );
 
@@ -311,7 +311,8 @@ export default function ProjectIntake() {
                       answers.references.filter((_, idx) => idx !== i),
                     )
                   }
-                  className="shrink-0 rounded-lg border border-black/15 px-3 text-black/40 hover:text-black"
+                  className="shrink-0 rounded-lg px-3 text-[var(--archive-white)]/40 hover:text-[var(--archive-white)]"
+                style={{ border: "1px solid rgba(244,245,247,0.15)" }}
                   aria-label="Remove link"
                 >
                   ✕
@@ -322,7 +323,7 @@ export default function ProjectIntake() {
           <button
             type="button"
             onClick={() => set("references", [...answers.references, ""])}
-            className="text-sm text-[#0D7A7A] hover:underline"
+            className="text-sm text-[var(--norvo-violet)] hover:underline"
           >
             + Add another
           </button>
@@ -351,7 +352,8 @@ export default function ProjectIntake() {
           <button
             type="button"
             onClick={addCustomPage}
-            className="rounded-full border border-black/15 px-4 py-2 text-sm text-black/65 hover:border-[#0D7A7A]"
+            className="rounded-full px-4 py-2 text-sm text-[var(--archive-white)]/50 hover:text-[var(--archive-white)]/80 transition-colors"
+            style={{ border: "1px solid rgba(244,245,247,0.15)" }}
           >
             Add
           </button>
@@ -432,7 +434,7 @@ export default function ProjectIntake() {
 
       {/* Submission error + mailto fallback */}
       {result && !result.ok && (
-        <div className="mt-6 rounded-xl border border-[#D9A441] bg-[#FBF3DF] p-4 text-sm text-[#7a5b12]">
+        <div className="mt-6 rounded-xl p-4 text-sm" style={{ background: "rgba(216,180,106,0.08)", border: "1px solid rgba(216,180,106,0.2)", color: "#D8B46A" }}>
           {result.code === "NO_EMAIL_CONFIGURED"
             ? "The form isn't fully connected yet — but your brief isn't lost."
             : result.error}{" "}
@@ -443,12 +445,12 @@ export default function ProjectIntake() {
       )}
 
       {/* Nav */}
-      <div className="mt-10 flex items-center justify-between border-t border-black/5 pt-6">
+      <div className="mt-10 flex items-center justify-between border-t pt-6" style={{ borderColor: "rgba(244,245,247,0.08)" }}>
         <button
           type="button"
           onClick={back}
           disabled={step === 0}
-          className="rounded-full px-5 py-3 text-sm text-black/55 transition hover:text-black disabled:opacity-30"
+          className="rounded-full px-5 py-3 text-sm text-[var(--archive-white)]/40 transition hover:text-[var(--archive-white)] disabled:opacity-30"
         >
           ← Back
         </button>
@@ -459,7 +461,7 @@ export default function ProjectIntake() {
               <button
                 type="button"
                 onClick={next}
-                className="rounded-full px-4 py-3 text-sm text-black/45 hover:text-black/70"
+                className="rounded-full px-4 py-3 text-sm text-[var(--archive-white)]/30 hover:text-[var(--archive-white)]/60"
               >
                 Skip
               </button>
@@ -469,7 +471,7 @@ export default function ProjectIntake() {
               onClick={next}
               disabled={!canAdvance}
               className="rounded-full px-6 py-3 text-sm font-medium text-white transition disabled:cursor-not-allowed disabled:opacity-40"
-              style={{ background: "linear-gradient(120deg,#0D7A7A,#D9A441)" }}
+              style={{ background: "linear-gradient(120deg, #6D5DFB, #D8B46A)" }}
             >
               Continue →
             </button>
@@ -482,7 +484,7 @@ export default function ProjectIntake() {
       </div>
 
       {step === 0 && !canAdvance && (
-        <p className="mt-3 text-right text-xs text-black/35">
+        <p className="mt-3 text-right text-xs text-[var(--archive-white)]/25">
           Name, email and project type to continue — the rest is optional.
         </p>
       )}
@@ -501,7 +503,7 @@ function ReviewStep({
   onEdit: (step: number) => void;
 }) {
   const fmt = (v: string | string[]) =>
-    Array.isArray(v) ? v.filter(Boolean).join(", ") : v;
+    Array.isArray(v) ? (Array.isArray(v) ? (v as string[]).filter(Boolean).join(", ") : v) : v as string;
 
   const sections: { step: number; title: string; rows: [string, string][] }[] = [
     {
@@ -556,37 +558,37 @@ function ReviewStep({
 
   return (
     <div className="space-y-5">
-      <p className="text-sm text-black/55">
-        Quick look before you send — tap <span className="text-[#0D7A7A]">Edit</span> on anything
-        to change it.
+      <p className="text-sm text-[var(--archive-white)]/40">
+        Quick look before you send — tap{" "}
+        <span className="text-[var(--norvo-violet)]">Edit</span> on anything to change it.
       </p>
       {answers.needsGuidance.length > 0 && (
-        <div className="rounded-xl border border-[#D9A441]/60 bg-[#FBF3DF] px-4 py-3 text-sm text-[#7a5b12]">
-          We'll guide you on: {answers.needsGuidance.join(", ")}.
+        <div className="rounded-xl px-4 py-3 text-sm" style={{ background: "rgba(216,180,106,0.08)", border: "1px solid rgba(216,180,106,0.2)", color: "#D8B46A" }}>
+          We&apos;ll guide you on: {answers.needsGuidance.join(", ")}.
         </div>
       )}
       {sections.map((sec) => {
         const rows = sec.rows.filter(([, v]) => v && v.trim());
         return (
-          <div key={sec.step} className="rounded-xl border border-black/10 p-5">
+          <div key={sec.step} className="rounded-xl p-5" style={{ border: "1px solid rgba(244,245,247,0.08)", background: "rgba(244,245,247,0.02)" }}>
             <div className="mb-3 flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-black/80">{sec.title}</h3>
+              <h3 className="text-xs tracking-[0.2em] text-[var(--archive-white)]/50 uppercase">{sec.title}</h3>
               <button
                 type="button"
                 onClick={() => onEdit(sec.step)}
-                className="text-xs text-[#0D7A7A] hover:underline"
+                className="text-xs text-[var(--norvo-violet)] hover:underline"
               >
                 Edit
               </button>
             </div>
             {rows.length === 0 ? (
-              <p className="text-sm text-black/35">— skipped —</p>
+              <p className="text-sm text-[var(--archive-white)]/25">— skipped —</p>
             ) : (
               <dl className="space-y-1.5">
                 {rows.map(([k, v]) => (
                   <div key={k} className="flex gap-3 text-sm">
-                    <dt className="w-28 shrink-0 text-black/40">{k}</dt>
-                    <dd className="text-black/75">{v}</dd>
+                    <dt className="w-28 shrink-0 text-[var(--archive-white)]/30">{k}</dt>
+                    <dd className="text-[var(--archive-white)]/60">{v}</dd>
                   </div>
                 ))}
               </dl>

@@ -105,7 +105,7 @@ export default function ServicesHome() {
         >
           <Button
             href="/services"
-            variant="blue"
+            variant="primary"
             size="md"
             withArrow
           >
