@@ -57,10 +57,10 @@ export default function Home() {
       smoothWheel: true,
       wheelMultiplier: 0.9,
       syncTouch: true,
-      syncTouchLerp: 0.08, // lower than the 0.1 we had → a longer, smoother glide-to-rest after a flick (momentum feel)
+      syncTouchLerp: 0.06,
       touchMultiplier: 1.1, // finger-travel → scroll ratio; nudged above 1:1 to offset the lack of native touch acceleration
-      touchInertiaExponent: 1.8, // how far a flick coasts. Higher = more momentum. Kept a touch under the 1.9–2.0 range so a
-      // hard flick doesn't throw the scrubbed video too far ahead of the eras (which ride the smoothed scroll) before it catches up
+      touchInertiaExponent: 1.0, // Lenis' own inertia is |velocity|^this; 1.0 makes it negligible so our linear fling below
+      // (which reads far more like native momentum) owns the coast instead of the explosive default power law.
     });
     lenisRef.current = lenis;
     lenis.scrollTo(0, { immediate: true });
@@ -70,8 +70,37 @@ export default function Home() {
       raf = requestAnimationFrame(loop);
     };
     raf = requestAnimationFrame(loop);
+
+    // Momentum — a native-feeling fling. Lenis' built-in touch inertia is a power
+    // law of velocity (dead for normal flicks, ~9 screens for a hard one), so we
+    // neutralize it (touchInertiaExponent 1.0 above) and add our own: coast is
+    // LINEAR in the release velocity, the way iOS momentum reads. Lenis registered
+    // its touch listeners first (in its constructor), so ours run afterward and our
+    // scrollTo wins the frame; targetScroll lands on the fling destination, so the
+    // video scrub glides along with it.
+    const easeOutExpo = (t: number) => (t >= 1 ? 1 : 1 - Math.pow(2, -10 * t));
+    let touching = false;
+    const onTouchStart = () => { touching = true; };
+    const onTouchCancel = () => { touching = false; };
+    const onTouchEnd = () => {
+      if (!touching || lenis.isStopped) return;
+      touching = false;
+      const v = lenis.velocity; // px/frame at release, +down
+      const speed = Math.abs(v);
+      if (speed < 2) return; // a tap or a slow drag — let it settle, no fling
+      const distance = Math.max(-3600, Math.min(3600, v * 42)); // coast ∝ velocity, capped at ~3 screens
+      const duration = Math.min(1.5, 0.45 + speed * 0.02);
+      lenis.scrollTo(lenis.animatedScroll + distance, { duration, easing: easeOutExpo });
+    };
+    window.addEventListener("touchstart", onTouchStart, { passive: true });
+    window.addEventListener("touchend", onTouchEnd, { passive: true });
+    window.addEventListener("touchcancel", onTouchCancel, { passive: true });
+
     return () => {
       cancelAnimationFrame(raf);
+      window.removeEventListener("touchstart", onTouchStart);
+      window.removeEventListener("touchend", onTouchEnd);
+      window.removeEventListener("touchcancel", onTouchCancel);
       lenis.destroy();
       lenisRef.current = null;
     };

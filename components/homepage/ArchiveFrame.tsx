@@ -58,8 +58,12 @@ export default function ArchiveFrame({ progress }: Props) {
       <div className={`${bracket} bottom-5 left-5 border-b border-l`} />
       <div className={`${bracket} bottom-5 right-5 border-b border-r`} />
 
-      {/* Top-center: the archive identity + the live year (the time machine) */}
-      <div className="absolute left-1/2 top-[4.6rem] -translate-x-1/2 text-center">
+      {/* Top-center: the archive identity + the live year (the time machine).
+          Hidden on mobile: it's a fixed element that, under iOS's dynamic viewport
+          (URL bar show/hide), drifted into the era headers below and overlapped
+          their text. The era header ("REC.00X // THE … ERA · years") already
+          carries the period, so mobile loses nothing legible. */}
+      <div className="absolute left-1/2 top-[4.6rem] hidden -translate-x-1/2 text-center sm:block">
         <div className="text-[0.58rem] tracking-[0.5em] text-[var(--archive-white)]/40">
           NORVO · DATA ARCHIVE
         </div>

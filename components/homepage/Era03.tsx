@@ -35,13 +35,11 @@ export default function Era03({ progress }: Props) {
     if (!entered && v > s + 0.01) setEntered(true);
   });
 
-  // Mobile note: the section gets pt-[9vh] so this era's tall content clears the
-  // ArchiveFrame YEAR readout up top (which otherwise crowded "THE INTERFACE ERA").
   return (
     <section
       ref={sectionRef}
       aria-label="Archive record 003 — Interfaces"
-      className="pointer-events-none absolute inset-0 flex items-center px-8 pt-[9vh] text-[var(--archive-white)] sm:px-[10vw] sm:pt-0"
+      className="pointer-events-none absolute inset-0 flex items-center px-8 text-[var(--archive-white)] sm:px-[10vw]"
     >
       <div className="w-full max-w-5xl font-mono">
         <div className="mb-6 flex items-center gap-3 text-[0.62rem] tracking-[0.3em] text-[var(--archive-white)]/45">
