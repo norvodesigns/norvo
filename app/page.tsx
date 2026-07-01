@@ -57,10 +57,10 @@ export default function Home() {
       smoothWheel: true,
       wheelMultiplier: 0.9,
       syncTouch: true,
-      syncTouchLerp: 0.1, // touch-release inertia smoothing (snappier than the 0.075 default so the clip settles promptly)
+      syncTouchLerp: 0.08, // lower than the 0.1 we had → a longer, smoother glide-to-rest after a flick (momentum feel)
       touchMultiplier: 1.1, // finger-travel → scroll ratio; nudged above 1:1 to offset the lack of native touch acceleration
-      touchInertiaExponent: 1.5, // flatter than the 1.7 default: the scrub follows targetScroll (the destination) while the
-      // eras follow the smoothed scroll, so a hard flick could throw the video far ahead — a gentler inertia keeps them together
+      touchInertiaExponent: 1.8, // how far a flick coasts. Higher = more momentum. Kept a touch under the 1.9–2.0 range so a
+      // hard flick doesn't throw the scrubbed video too far ahead of the eras (which ride the smoothed scroll) before it catches up
     });
     lenisRef.current = lenis;
     lenis.scrollTo(0, { immediate: true });

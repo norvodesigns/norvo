@@ -86,6 +86,15 @@ export default function HomepageNav({ progress, introComplete }: Props) {
   const railWidth = useTransform(progress, [0, 1], ["0%", "100%"]);
   useBind(railRef, { width: railWidth });
 
+  // The monogram (the arch "N") fills with the brand gradient as the visitor
+  // ascends: white through the archive, easing to the full blue→purple→gold
+  // monogram between Experiences ("We make places") and the Observatory. A mono
+  // Logo sits underneath; this colored one fades in over it (opacity via useBind,
+  // plain DOM — never WAAPI, so it can't crash WebKit).
+  const monoRevealRef = useRef<HTMLSpanElement>(null);
+  const monoRevealO = useTransform(progress, [BEATS.era4[0], BEATS.observatory[0] + 0.1], [0, 1]);
+  useBind(monoRevealRef, { opacity: monoRevealO });
+
   const ink = dark || !introComplete ? "#F4F5F7" : "#14161A";
 
   return (
@@ -107,7 +116,17 @@ export default function HomepageNav({ progress, introComplete }: Props) {
         }}
       >
         <Link href="/" aria-label="Norvo Designs — home" className="relative z-50">
-          <Logo className="text-[1.45rem]" mono />
+          <span className="relative inline-flex leading-none align-middle">
+            <Logo className="text-[1.45rem]" mono />
+            <span
+              ref={monoRevealRef}
+              aria-hidden
+              className="pointer-events-none absolute left-0 top-0"
+              style={{ opacity: 0 }}
+            >
+              <Logo className="text-[1.45rem]" reveal />
+            </span>
+          </span>
         </Link>
 
         {/* Desktop nav */}

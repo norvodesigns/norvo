@@ -20,16 +20,38 @@ export function ArchMark({ className = "", mono = false }: { className?: string;
   );
 }
 
-export default function Logo({ className = "", mono = false }: { className?: string; mono?: boolean }) {
+export default function Logo({
+  className = "",
+  mono = false,
+  reveal = false,
+}: {
+  className?: string;
+  mono?: boolean;
+  reveal?: boolean;
+}) {
+  // `reveal` paints the arch in the full monogram gradient (blue → purple → gold)
+  // under its own gradient id, so a reveal Logo can be layered over a mono one and
+  // faded in on scroll without the two SVGs' gradient ids colliding.
+  const gid = reveal ? "norvoLockArcReveal" : "norvoLockArc";
   return (
     <svg viewBox="367 268 680 251" className={className} style={{ height: "1em", width: "auto" }} role="img" aria-label="Norvo Designs">
       <defs>
-        <linearGradient id="norvoLockArc" x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0%" stopColor={mono ? "currentColor" : "var(--norvo-violet)"} />
-          <stop offset="100%" stopColor={mono ? "currentColor" : "var(--observatory-gold)"} />
+        <linearGradient id={gid} x1="0" y1="0" x2="1" y2="0">
+          {reveal ? (
+            <>
+              <stop offset="0%" stopColor="#4062F7" />
+              <stop offset="48%" stopColor="#7857F5" />
+              <stop offset="100%" stopColor="#D8B46A" />
+            </>
+          ) : (
+            <>
+              <stop offset="0%" stopColor={mono ? "currentColor" : "var(--norvo-violet)"} />
+              <stop offset="100%" stopColor={mono ? "currentColor" : "var(--observatory-gold)"} />
+            </>
+          )}
         </linearGradient>
       </defs>
-      <g transform="translate(370.6,271.6) scale(0.8) translate(0,305) scale(0.1,-0.1)" fill="url(#norvoLockArc)">
+      <g transform="translate(370.6,271.6) scale(0.8) translate(0,305) scale(0.1,-0.1)" fill={`url(#${gid})`}>
         <path d={ARCH_PATH} />
       </g>
       <g transform="translate(596,354) translate(0,108) scale(0.1,-0.1)" fill="currentColor">

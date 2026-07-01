@@ -48,7 +48,9 @@ export default function Era02({ progress }: Props) {
             <div key={i} className="h-full border-l border-[var(--archive-white)]/[0.06]" />
           ))}
         </div>
-        <div className="absolute -top-5 left-0 font-mono text-[0.5rem] tracking-[0.3em] text-[var(--archive-white)]/30">
+        {/* Hidden on mobile: at narrow widths this decorative label collided with
+            the ArchiveFrame's centered YEAR readout up top. */}
+        <div className="absolute -top-5 left-0 hidden font-mono text-[0.5rem] tracking-[0.3em] text-[var(--archive-white)]/30 sm:block">
           12-COL GRID · BASELINE 8PX
         </div>
       </div>

@@ -34,6 +34,9 @@ export default function Button({
 }: Props) {
   const ref = useRef<HTMLElement>(null);
   const lastTouchRef = useRef(0);
+  const scrollingRef = useRef(false);
+  const hoverRef = useRef(false);
+  const touchHoverRef = useRef(false); // was the current hover started by touch?
   const [hover, setHover] = useState(false);
   const router = useRouter();
 
@@ -76,6 +79,34 @@ export default function Button({
   };
   const resetTilt = () => { px.set(0); py.set(0); };
 
+  // Mobile: while the page is actively scrolling, a finger landing on the button
+  // (touch pointerdown) must NOT fire the wipe/press animation — you're scrolling
+  // past it, not pressing it. Track scroll activity and (a) skip the animation on
+  // touch-down while scrolling (see onPointerDown), (b) cancel an in-progress wipe
+  // the instant a scroll begins. Navigation is unaffected: it only happens on a
+  // real tap (a click, which the browser already suppresses after a scroll/drag),
+  // so this gates the visual only.
+  useEffect(() => {
+    hoverRef.current = hover;
+  }, [hover]);
+  useEffect(() => {
+    let t = 0;
+    const onScroll = () => {
+      scrollingRef.current = true;
+      // Only cancel touch-initiated wipes — desktop mouse hover is left untouched.
+      if (hoverRef.current && touchHoverRef.current) setHover(false);
+      clearTimeout(t);
+      t = window.setTimeout(() => {
+        scrollingRef.current = false;
+      }, 150);
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      clearTimeout(t);
+    };
+  }, []);
+
   useEffect(() => {
     if (!hover) return;
     const check = (e: PointerEvent) => {
@@ -103,6 +134,7 @@ export default function Button({
     onPointerEnter: (e: React.PointerEvent) => {
       if (disabled || e.pointerType === "touch") return;
       if (Date.now() - lastTouchRef.current < 600) return;
+      touchHoverRef.current = false;
       setOrigin(e.clientX, e.clientY); setHover(true);
     },
     onPointerMove: (e: React.PointerEvent) => { if (!disabled && e.pointerType !== "touch") setTiltFrom(e.clientX, e.clientY); },
@@ -111,6 +143,8 @@ export default function Button({
     onPointerDown: (e: React.PointerEvent) => {
       if (disabled || e.pointerType !== "touch") return;
       lastTouchRef.current = Date.now();
+      if (scrollingRef.current) return; // scrolling past the button — don't fire the wipe
+      touchHoverRef.current = true;
       setOrigin(e.clientX, e.clientY); setHover(true);
     },
     whileHover: disabled ? {} : { y: -2 },
