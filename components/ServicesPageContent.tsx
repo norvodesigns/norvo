@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import { motion, useInView, useScroll, useTransform } from "motion/react";
 import Link from "next/link";
 
@@ -40,7 +40,7 @@ function CapabilityModule({ index, number, title, tagline, description, capabili
                 className="text-[10px] font-medium tracking-[0.4em] uppercase"
                 style={{ color: "var(--norvo-violet)" }}
               >
-                MODULE {number}
+                {number}
               </span>
               <div className="h-px flex-1" style={{ background: "rgba(109,93,251,0.3)" }} />
             </div>
@@ -54,7 +54,7 @@ function CapabilityModule({ index, number, title, tagline, description, capabili
             >
               {tagline}
             </p>
-            <p className="mb-8 max-w-lg text-base leading-relaxed text-[var(--archive-white)]/55">
+            <p className="mb-8 max-w-lg text-base leading-relaxed text-[var(--archive-white)]/60">
               {description}
             </p>
 
@@ -87,17 +87,287 @@ function CapabilityModule({ index, number, title, tagline, description, capabili
   );
 }
 
-// ── Capability Visuals ────────────────────────────────────────────────────────
+// ── Before / After slider (real client redesigns) ─────────────────────────────
 
-function CustomDesignVisual() {
+interface BeforeAfterSliderProps {
+  beforeSrc: string;
+  afterSrc: string;
+  label: string;
+}
+
+function BeforeAfterSlider({ beforeSrc, afterSrc, label }: BeforeAfterSliderProps) {
+  const [sliderPosition, setSliderPosition] = useState(50);
+  const [isDragging, setIsDragging] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const getPosition = (clientX: number) => {
+    if (!containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    const newPosition = ((clientX - rect.left) / rect.width) * 100;
+    setSliderPosition(Math.max(0, Math.min(100, newPosition)));
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isDragging) return;
+    getPosition(e.clientX);
+  };
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setIsDragging(true);
+    getPosition(e.touches[0].clientX);
+  };
+
+  const handleTouchEnd = () => {
+    setIsDragging(false);
+  };
+
+  // Attach touch listener as non-passive so preventDefault works (blocks the page
+  // from scrolling while you drag the handle on mobile).
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const onTouchMove = (e: TouchEvent) => {
+      if (!isDragging) return;
+      e.preventDefault();
+      const rect = el.getBoundingClientRect();
+      const newPosition = ((e.touches[0].clientX - rect.left) / rect.width) * 100;
+      setSliderPosition(Math.max(0, Math.min(100, newPosition)));
+    };
+    el.addEventListener("touchmove", onTouchMove, { passive: false });
+    return () => el.removeEventListener("touchmove", onTouchMove);
+  }, [isDragging]);
+
+  return (
+    <div className="space-y-2">
+      <div className="text-xs font-light tracking-widest text-[var(--archive-white)]/40 uppercase">{label}</div>
+      <div
+        ref={containerRef}
+        onMouseMove={handleMouseMove}
+        onMouseDown={() => setIsDragging(true)}
+        onMouseUp={() => setIsDragging(false)}
+        onMouseLeave={() => setIsDragging(false)}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+        className="relative w-full cursor-col-resize select-none overflow-hidden rounded-xl shadow-md ring-1 ring-white/10"
+        style={{ aspectRatio: "16/9" }}
+      >
+        {/* After — full background (right side) */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={afterSrc}
+          alt="After the Norvo redesign"
+          className="absolute inset-0 h-full w-full object-cover object-top"
+        />
+
+        {/* Before — clipped to the left of the slider */}
+        <div
+          className="absolute inset-0 overflow-hidden"
+          style={{ width: `${sliderPosition}%` }}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={beforeSrc}
+            alt="Before the redesign"
+            className="absolute inset-0 h-full object-cover object-top"
+            style={{ width: containerRef.current?.offsetWidth ?? "100%" }}
+          />
+        </div>
+
+        {/* Divider line + handle (Signature Gradient) */}
+        <div
+          className="absolute inset-y-0 w-px bg-white shadow-lg"
+          style={{ left: `${sliderPosition}%` }}
+        >
+          <div
+            className="absolute left-1/2 top-1/2 flex h-10 w-10 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border-2 border-white shadow-xl"
+            style={{ background: "linear-gradient(120deg, #6D5DFB, #D8B46A)" }}
+          >
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <path d="M5 8L2 5M2 5L5 2M2 5h12M11 8l3 3M14 11l-3 3M14 11H2" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </div>
+        </div>
+
+        {/* Labels */}
+        <div className="pointer-events-none absolute inset-0 flex items-end justify-between p-3">
+          <span className="rounded-md bg-black/50 px-2.5 py-1 text-xs font-light tracking-wide text-white backdrop-blur-sm">Before</span>
+          <span className="rounded-md bg-black/50 px-2.5 py-1 text-xs font-light tracking-wide text-white backdrop-blur-sm">After</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function WebsiteRedesignVisual() {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }}
+      transition={{ duration: 0.8 }}
+      className="w-full max-w-lg space-y-6"
+    >
+      <BeforeAfterSlider
+        beforeSrc="/mozartlaser-hero/before.jpeg"
+        afterSrc="/mozartlaser-hero/after.jpeg"
+        label="Mozart Laser · Home"
+      />
+      <BeforeAfterSlider
+        beforeSrc="/mozartlaser-products/before.jpeg"
+        afterSrc="/mozartlaser-products/after.jpeg"
+        label="Mozart Laser · Products"
+      />
+      <p className="text-xs font-light leading-relaxed text-[var(--archive-white)]/40">
+        A real redesign — drag to compare. Same business, a first impression that finally does it justice.
+      </p>
+    </motion.div>
+  );
+}
+
+// ── Mobile: a real client site auto-scrolling inside a phone ──────────────────
+
+function MobileExperienceVisual() {
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const posRef = useRef(0);
+  const dirRef = useRef(1); // 1 = scrolling down, -1 = scrolling up
+  const rafRef = useRef<number>(0);
+  const runningRef = useRef(false);
+
+  const SCREEN_W = 204;
+  const IFRAME_W = 390;
+  const IFRAME_H = 844;
+  const scale = SCREEN_W / IFRAME_W;
+  const NOTCH_H = 20;
+  const MAX_SCROLL = 3200;
+  const SPEED = 2.5;
+
+  const injectStyles = () => {
+    const doc = iframeRef.current?.contentDocument;
+    if (!doc?.head || doc.getElementById("nrv-hide")) return;
+    const s = doc.createElement("style");
+    s.id = "nrv-hide";
+    s.textContent = "::-webkit-scrollbar{display:none}html,body{scrollbar-width:none;-ms-overflow-style:none}";
+    doc.head.appendChild(s);
+  };
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    const tick = () => {
+      if (!runningRef.current) return;
+      const win = iframeRef.current?.contentWindow;
+      if (win) {
+        posRef.current += SPEED * dirRef.current;
+        if (posRef.current >= MAX_SCROLL) {
+          posRef.current = MAX_SCROLL;
+          dirRef.current = -1;
+        } else if (posRef.current <= 0) {
+          posRef.current = 0;
+          dirRef.current = 1;
+        }
+        win.scrollTo({ top: posRef.current, behavior: "instant" as ScrollBehavior });
+      }
+      rafRef.current = requestAnimationFrame(tick);
+    };
+
+    // Only run while it's on screen — no wasted frames scrolling an unseen iframe.
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && !runningRef.current) {
+          injectStyles();
+          runningRef.current = true;
+          rafRef.current = requestAnimationFrame(tick);
+        } else if (!entry.isIntersecting && runningRef.current) {
+          runningRef.current = false;
+          cancelAnimationFrame(rafRef.current);
+        }
+      },
+      { threshold: 0.2 }
+    );
+
+    observer.observe(el);
+    return () => {
+      observer.disconnect();
+      runningRef.current = false;
+      cancelAnimationFrame(rafRef.current);
+    };
+  }, []);
+
+  return (
+    <motion.div
+      ref={containerRef}
+      initial={{ opacity: 0, y: 40, scale: 0.9 }}
+      whileInView={{ opacity: 1, y: 0, scale: 1 }}
+      viewport={{ once: true }}
+      transition={{ duration: 0.8 }}
+      className="flex flex-col items-center gap-6"
+    >
+      {/* Phone frame */}
+      <div className="relative w-56 rounded-[2.8rem] border-[10px] border-gray-900 bg-gray-900 shadow-2xl ring-1 ring-white/10">
+        {/* Notch */}
+        <div className="absolute left-1/2 top-0 z-20 h-5 w-28 -translate-x-1/2 rounded-b-2xl bg-gray-900" />
+
+        {/* Screen */}
+        <div className="relative overflow-hidden rounded-[2rem] bg-white" style={{ aspectRatio: "9/19.5" }}>
+          {/* Bar covering the notch area — matches the site's navbar colour so the corners read cleanly */}
+          <div className="absolute left-0 right-0 top-0 z-10" style={{ height: NOTCH_H, background: "#f5f3ef" }} />
+
+          {/* Live client site, scaled to fit the phone screen and auto-scrolling */}
+          <iframe
+            ref={iframeRef}
+            src="/norvo-example-site.html"
+            title="Norvo — a live client site on mobile"
+            onLoad={injectStyles}
+            style={{
+              position: "absolute",
+              top: NOTCH_H,
+              left: 0,
+              width: IFRAME_W,
+              height: IFRAME_H,
+              border: "none",
+              transform: `scale(${scale})`,
+              transformOrigin: "top left",
+              pointerEvents: "none",
+            }}
+          />
+
+          {/* Interaction blocker — keeps touch/scroll out of the iframe */}
+          <div className="absolute inset-0 z-20" style={{ touchAction: "none" }} />
+
+          {/* Decorative hamburger */}
+          <div className="absolute right-3 top-6 z-30 flex flex-col gap-[4px]">
+            <div className="h-[2px] w-4 rounded-full bg-gray-800" />
+            <div className="h-[2px] w-4 rounded-full bg-gray-800" />
+            <div className="h-[2px] w-3 rounded-full bg-gray-800" />
+          </div>
+        </div>
+
+        {/* Home bar */}
+        <div className="mt-2 flex justify-center pb-1">
+          <div className="h-1 w-24 rounded-full bg-gray-600" />
+        </div>
+      </div>
+
+      <p className="text-center text-xs font-light tracking-widest text-[var(--archive-white)]/40 uppercase">
+        A live client site — Harborview Estates
+      </p>
+    </motion.div>
+  );
+}
+
+// ── Graphic design / brand visual ─────────────────────────────────────────────
+
+function BrandDesignVisual() {
   return (
     <div
       className="relative h-72 w-full max-w-md rounded-2xl border p-6"
       style={{ background: "rgba(244,245,247,0.03)", borderColor: "rgba(244,245,247,0.08)" }}
     >
-      <div className="mb-4 text-xs tracking-widest text-[var(--archive-white)]/30 uppercase">Design System</div>
+      <div className="mb-4 text-xs tracking-widest text-[var(--archive-white)]/30 uppercase">Brand system</div>
 
-      {/* Color swatches */}
+      {/* Colour swatches */}
       <div className="mb-4 flex gap-3">
         {["#14161A", "#6D5DFB", "#D8B46A", "#F4F5F7"].map((c, i) => (
           <motion.div
@@ -112,7 +382,7 @@ function CustomDesignVisual() {
       {/* Typography preview */}
       <div className="mb-4 space-y-1">
         <div className="text-xl font-light text-[var(--archive-white)]">Aa — Display</div>
-        <div className="text-sm text-[var(--archive-white)]/40">Geist Mono · Weights 300–700</div>
+        <div className="text-sm text-[var(--archive-white)]/40">One typeface, one voice, everywhere</div>
       </div>
 
       {/* Component preview */}
@@ -121,7 +391,7 @@ function CustomDesignVisual() {
           className="rounded-full px-4 py-2 text-xs font-medium text-white"
           style={{ background: "linear-gradient(120deg, #6D5DFB, #D8B46A)" }}
         >
-          Primary CTA
+          Primary
         </div>
         <div
           className="rounded-full px-4 py-2 text-xs font-medium text-[var(--archive-white)]/70"
@@ -138,120 +408,26 @@ function CustomDesignVisual() {
         className="absolute -right-4 top-8 rounded-xl p-3 text-xs"
         style={{ background: "rgba(109,93,251,0.15)", border: "1px solid rgba(109,93,251,0.3)", color: "#A89DFF" }}
       >
-        Custom built
+        Holds together
         <br />
-        from scratch
+        everywhere
       </motion.div>
     </div>
   );
 }
 
-function RedesignVisual() {
-  const [pos, setPos] = useState(50);
+// ── Advertising visual (campaign metrics) ─────────────────────────────────────
 
-  return (
-    <div className="w-full max-w-md">
-      <div className="mb-2 text-[10px] tracking-widest text-[var(--archive-white)]/30 uppercase">
-        Before / After
-      </div>
-      <div
-        className="relative cursor-col-resize select-none overflow-hidden rounded-xl"
-        style={{ aspectRatio: "16/9", background: "#111" }}
-        onMouseMove={(e) => {
-          const r = e.currentTarget.getBoundingClientRect();
-          setPos(((e.clientX - r.left) / r.width) * 100);
-        }}
-      >
-        {/* After */}
-        <div className="absolute inset-0" style={{ background: "linear-gradient(135deg, #0a0b0f, #14161A)" }}>
-          <div className="flex h-full items-center justify-center">
-            <div className="text-center">
-              <div className="mb-2 text-2xl font-light text-[var(--archive-white)]">After</div>
-              <div
-                className="rounded-full px-4 py-2 text-xs text-white"
-                style={{ background: "linear-gradient(120deg, #6D5DFB, #D8B46A)" }}
-              >
-                Modern & Premium
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Before */}
-        <div
-          className="absolute inset-0 overflow-hidden"
-          style={{ width: `${pos}%` }}
-        >
-          <div
-            className="absolute inset-0 flex items-center justify-center"
-            style={{ width: `${10000 / pos}%`, background: "#E8E8E8" }}
-          >
-            <div className="text-center">
-              <div className="mb-2 text-xl text-gray-700">Before</div>
-              <div className="rounded bg-gray-300 px-3 py-1 text-xs text-gray-600">
-                Outdated
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Divider */}
-        <div
-          className="absolute inset-y-0 w-0.5 bg-white/80"
-          style={{ left: `${pos}%` }}
-        >
-          <div className="absolute left-1/2 top-1/2 flex h-8 w-8 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-white/40 bg-white/20 backdrop-blur-sm">
-            <span className="text-[10px] text-white">⟺</span>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function MobileVisual() {
-  return (
-    <div className="flex items-center justify-center">
-      <div
-        className="relative rounded-[2.5rem] p-2"
-        style={{ background: "#1a1a1a", boxShadow: "0 30px 80px rgba(0,0,0,0.5)", width: 180 }}
-      >
-        <div className="relative overflow-hidden rounded-[2rem]" style={{ aspectRatio: "9/19.5", background: "#0a0b0f" }}>
-          {/* Notch */}
-          <div className="absolute left-1/2 top-0 z-10 h-5 w-24 -translate-x-1/2 rounded-b-2xl" style={{ background: "#1a1a1a" }} />
-
-          {/* Screen content */}
-          <div className="absolute inset-0 pt-5">
-            <div className="h-8 border-b px-4 flex items-center justify-between"
-              style={{ borderColor: "rgba(244,245,247,0.05)", background: "rgba(244,245,247,0.02)" }}>
-              <div className="h-3 w-12 rounded" style={{ background: "rgba(244,245,247,0.1)" }} />
-              <div className="h-3 w-3 rounded-full" style={{ background: "rgba(109,93,251,0.5)" }} />
-            </div>
-            <div className="p-3 space-y-2">
-              {[80, 60, 90, 50, 70].map((w, i) => (
-                <div key={i} className="h-2 rounded-full" style={{ width: `${w}%`, background: "rgba(244,245,247,0.08)" }} />
-              ))}
-              <div className="mt-4 rounded-xl h-20" style={{ background: "rgba(109,93,251,0.1)" }} />
-            </div>
-          </div>
-        </div>
-        {/* Home bar */}
-        <div className="mt-2 flex justify-center pb-1">
-          <div className="h-0.5 w-16 rounded-full" style={{ background: "rgba(244,245,247,0.3)" }} />
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function InteractiveVisual() {
+function AdvertisingVisual() {
+  const metrics = [
+    { label: "People reached", value: "48.2K", fill: 0.9 },
+    { label: "Click-through", value: "6.4%", fill: 0.64 },
+    { label: "Return on ad spend", value: "4.1×", fill: 0.82 },
+  ];
   return (
     <div className="relative w-full max-w-md">
-      {[
-        { label: "Scroll depth", value: 82, unit: "%" },
-        { label: "Avg. session", value: 4.2, unit: "min" },
-        { label: "Conversion", value: 3.8, unit: "×" },
-      ].map((metric, i) => (
+      <div className="mb-3 text-xs tracking-widest text-[var(--archive-white)]/30 uppercase">Campaign · last 30 days</div>
+      {metrics.map((metric, i) => (
         <motion.div
           key={i}
           className="mb-3 rounded-xl p-4"
@@ -263,16 +439,14 @@ function InteractiveVisual() {
         >
           <div className="mb-2 flex items-center justify-between">
             <span className="text-xs text-[var(--archive-white)]/40">{metric.label}</span>
-            <span className="text-sm font-light text-[var(--archive-white)]">
-              {metric.value}{metric.unit}
-            </span>
+            <span className="text-sm font-light text-[var(--archive-white)]">{metric.value}</span>
           </div>
           <div className="h-1 w-full overflow-hidden rounded-full" style={{ background: "rgba(244,245,247,0.08)" }}>
             <motion.div
-              className="h-full rounded-full"
+              className="h-full origin-left rounded-full"
               style={{ background: "linear-gradient(to right, #6D5DFB, #D8B46A)" }}
               initial={{ scaleX: 0 }}
-              whileInView={{ scaleX: Math.min(metric.value / 100, 1) }}
+              whileInView={{ scaleX: metric.fill }}
               viewport={{ once: true }}
               transition={{ duration: 1.2, delay: i * 0.1 + 0.3 }}
             />
@@ -283,56 +457,18 @@ function InteractiveVisual() {
   );
 }
 
-function PerformanceVisual() {
-  const metrics = [
-    { label: "LCP", value: "1.4s", color: "#22c55e" },
-    { label: "FID", value: "8ms", color: "#22c55e" },
-    { label: "CLS", value: "0.02", color: "#22c55e" },
-    { label: "Score", value: "98", color: "#6D5DFB" },
+// ── Business & product visual (a plan taking shape) ───────────────────────────
+
+function BusinessVisual() {
+  const items = [
+    { name: "Who it's for", status: "Clear" },
+    { name: "The offer & pricing", status: "Sharpened" },
+    { name: "Product roadmap", status: "Mapped" },
+    { name: "How you'll grow", status: "Planned" },
   ];
-
-  return (
-    <div
-      className="relative rounded-2xl p-6"
-      style={{ background: "rgba(244,245,247,0.03)", border: "1px solid rgba(244,245,247,0.08)", width: "100%", maxWidth: 380 }}
-    >
-      <div className="mb-4 text-xs tracking-widest text-[var(--archive-white)]/30 uppercase">Core Web Vitals</div>
-      <div className="grid grid-cols-2 gap-3">
-        {metrics.map((m, i) => (
-          <motion.div
-            key={i}
-            className="rounded-xl p-4"
-            style={{ background: "rgba(244,245,247,0.03)" }}
-            initial={{ scale: 0.8, opacity: 0 }}
-            whileInView={{ scale: 1, opacity: 1 }}
-            transition={{ delay: i * 0.1 }}
-            viewport={{ once: true }}
-          >
-            <div className="mb-1 text-[10px] tracking-widest text-[var(--archive-white)]/30 uppercase">{m.label}</div>
-            <div className="text-2xl font-light" style={{ color: m.color }}>{m.value}</div>
-          </motion.div>
-        ))}
-      </div>
-      <div
-        className="mt-4 flex items-center gap-3 rounded-xl p-3"
-        style={{ background: "rgba(34,197,94,0.08)", border: "1px solid rgba(34,197,94,0.2)" }}
-      >
-        <div className="text-green-400">●</div>
-        <span className="text-xs text-green-400">All Core Web Vitals passing</span>
-      </div>
-    </div>
-  );
-}
-
-function BrandVisual() {
   return (
     <div className="w-full max-w-md space-y-3">
-      {[
-        { name: "Homepage", status: "Deployed", progress: 100 },
-        { name: "Brand System", status: "Active", progress: 100 },
-        { name: "Design Tokens", status: "Synced", progress: 100 },
-        { name: "Component Library", status: "Built", progress: 100 },
-      ].map((item, i) => (
+      {items.map((item, i) => (
         <motion.div
           key={i}
           className="flex items-center justify-between rounded-xl p-4"
@@ -375,64 +511,105 @@ function ImpactStat({ display, label, description }: { display: string; label: s
   );
 }
 
-// ── Main export ───────────────────────────────────────────────────────────────
+// ── Content ───────────────────────────────────────────────────────────────────
 
 const MODULES = [
   {
-    number: "01",
-    title: "Custom Website Design",
-    tagline: "Built from the ground up, not from templates",
-    description: "Every business is unique. We don't use templates or cookie-cutter layouts. Instead, we start with your vision, your brand, and your goals. Our designers craft every pixel, every interaction, every detail specifically for you.",
-    capabilities: ["Fully custom visual identity", "Tailored to your brand strategy", "Modern, premium aesthetics", "Competitive advantage through design"],
-    visual: <CustomDesignVisual />,
+    number: "Web design & development",
+    title: "A site worth returning to",
+    tagline: "The first handshake — and often the only one.",
+    description:
+      "Your website is where most people meet your business for the first time. We design and build it from scratch, around you and the people you want to reach — never a template with your logo dropped in. The goal is simple: earn trust in the first second, and turn a visitor into an inquiry. Drag the slider to see a real redesign, before and after.",
+    capabilities: [
+      "Custom-designed and built, not templated",
+      "Fast, modern, and yours alone",
+      "Turns first impressions into inquiries",
+      "Real client work — see it right here",
+    ],
+    visual: <WebsiteRedesignVisual />,
   },
   {
-    number: "02",
-    title: "Website Redesigns",
-    tagline: "From outdated to unforgettable",
-    description: "Your website is stuck in the past. It's slow, it's generic, and it's costing you business. We transform outdated websites into premium digital experiences that win clients and stand the test of time.",
-    capabilities: ["Modernize your online presence", "Improve user experience significantly", "Faster load times across all devices", "Increased conversion potential"],
-    visual: <RedesignVisual />,
+    number: "Mobile experience",
+    title: "Premium on every screen",
+    tagline: "Because most of your visitors are holding a phone.",
+    description:
+      "Too many sites treat mobile as an afterthought — a desktop layout squeezed until it fits. We start on the phone and build up from there, so every tap and every scroll feels considered. The phone beside this is a real client site, running live and scrolling on its own.",
+    capabilities: [
+      "Designed mobile-first, not shrunk down",
+      "Smooth on any connection",
+      "Built for thumbs, not just clicks",
+      "A live client site, scrolling right here",
+    ],
+    visual: <MobileExperienceVisual />,
   },
   {
-    number: "03",
-    title: "Mobile Optimization",
-    tagline: "Premium on every screen",
-    description: "80% of people browse on phones. Most websites treat mobile as an afterthought. We reverse that: we design for mobile first, then adapt to desktop. Your users get a genuine premium experience no matter what device they use.",
-    capabilities: ["Mobile-first design philosophy", "Optimized touch interactions", "Fast performance on any connection", "Better conversion on mobile devices"],
-    visual: <MobileVisual />,
+    number: "Advertising & marketing",
+    title: "Getting the right people to it",
+    tagline: "A beautiful site no one sees isn't doing its job.",
+    description:
+      "Once the work is ready, people need to find it. We run the ads and campaigns that reach the right customers — not just more eyes, the right ones. We treat your budget like our own, watch what actually performs, and tell you the truth about it in plain language.",
+    capabilities: [
+      "Paid ads that respect your budget",
+      "Campaigns aimed at real customers",
+      "Copy and creative that earns the click",
+      "Honest reporting — what's working, what isn't",
+    ],
+    visual: <AdvertisingVisual />,
   },
   {
-    number: "04",
-    title: "Interactive Experiences",
-    tagline: "Motion that tells your story",
-    description: "A static website is a missed opportunity. We layer in advanced motion design, scroll-linked animations, and immersive interactions that guide visitors through your story — purposeful interactions that increase engagement.",
-    capabilities: ["Scroll-linked storytelling", "Advanced motion design systems", "Guided user journeys", "Higher engagement metrics"],
-    visual: <InteractiveVisual />,
+    number: "Graphic design & brand",
+    title: "One brand, one voice, everywhere",
+    tagline: "A logo is the start, not the finish.",
+    description:
+      "Your business should look like itself wherever it shows up — the website, an ad, a business card, the sign on the door. We build the whole visual identity: the colours, the type, the way it all feels. So everything holds together, and everything feels like you.",
+    capabilities: [
+      "Logos and full identity systems",
+      "Consistent across every touchpoint",
+      "Print, social, and packaging",
+      "A brand that actually feels like you",
+    ],
+    visual: <BrandDesignVisual />,
   },
   {
-    number: "05",
-    title: "Performance Optimization",
-    tagline: "Luxury at lightning speed",
-    description: "Beautiful design means nothing if the site takes 10 seconds to load. We obsess over performance: optimized images, efficient code, smart caching, and strategic loading. Luxury at under 2 seconds.",
-    capabilities: ["Sub-2-second load times", "Optimized images and code", "SEO-friendly performance", "Reduced bounce rates"],
-    visual: <PerformanceVisual />,
-  },
-  {
-    number: "06",
-    title: "Brand Experience Design",
-    tagline: "Consistency across every touchpoint",
-    description: "A great website needs a foundation: a cohesive visual identity. We design your brand experience — typography, color systems, motion principles, interactive patterns, and design language. Everything works together.",
-    capabilities: ["Cohesive visual identity system", "Consistent brand experience", "Scalable design system", "Memorable brand recall"],
-    visual: <BrandVisual />,
+    number: "Business & product",
+    title: "A partner to think it through with",
+    tagline: "Sometimes the hard part isn't the design.",
+    description:
+      "It's deciding what to offer, who it's for, and how to charge for it. We've helped owners shape products, sharpen an offer, and plan the next move — not from a textbook, but from having built the real thing many times over. Consider us a sounding board that also knows how to make it.",
+    capabilities: [
+      "Straight, useful advice when you ask for it",
+      "Shaping your offer and your pricing",
+      "Product and go-to-market planning",
+      "A steady partner as you grow",
+    ],
+    visual: <BusinessVisual />,
   },
 ];
 
 const IMPACT = [
-  { display: "50ms", label: "First impression", description: "Users form a judgment about your website before they've read a single word." },
-  { display: "75%", label: "Credibility from design", description: "People judge a company's credibility based entirely on its website design." },
+  { display: "50ms", label: "First impression", description: "People judge your website before they've read a single word." },
+  { display: "75%", label: "Credibility from design", description: "Most people decide whether to trust a company by how its site looks." },
   { display: "88%", label: "Won't return after bad UX", description: "There's rarely a second chance to make a first impression online." },
-  { display: "2×", label: "Conversion lift", description: "On average, a premium redesign doubles conversion compared to a generic site." },
+  { display: "2×", label: "Conversion lift", description: "A thoughtful redesign often doubles the inquiries a site brings in." },
+];
+
+const TRUST = [
+  {
+    title: "One team, start to finish",
+    body: "The people who design your work are the people who answer your emails. No handoffs, no account manager reading from a script.",
+  },
+  {
+    title: "Built for you, not from a template",
+    body: "Every project starts from your business and your goals — a blank canvas, not a theme with your name swapped in.",
+  },
+  {
+    title: "We care how it does, not just how it looks",
+    body: "A beautiful site that brings you no work is a failure. We measure success the way you do — in inquiries, customers, and growth.",
+  },
+  {
+    title: "Real work you can see running",
+    body: "Drag the sliders. Watch the phone. These are real clients, live. Then let's talk about yours.",
+  },
 ];
 
 export default function ServicesPageContent() {
@@ -448,16 +625,17 @@ export default function ServicesPageContent() {
       <div ref={heroRef} className="relative px-6 pb-16 pt-36 md:px-16 md:pt-44">
         <motion.div style={{ opacity: heroOpacity, y: heroY }}>
           <p className="mb-4 text-[10px] uppercase tracking-[0.4em] text-[var(--archive-white)]/30">
-            Capability Modules
+            What we do
           </p>
           <h1 className="mb-6 text-5xl font-light leading-tight tracking-tight text-[var(--archive-white)] sm:text-6xl md:text-7xl">
-            Transform your
+            We don&apos;t just build websites.
             <br />
-            <span className="text-gradient">digital presence.</span>
+            <span className="text-gradient">We help you grow.</span>
           </h1>
-          <p className="max-w-xl text-base text-[var(--archive-white)]/50 sm:text-lg">
-            We don&apos;t build generic websites. We craft immersive digital experiences
-            that make your business impossible to ignore.
+          <p className="max-w-xl text-base text-[var(--archive-white)]/55 sm:text-lg">
+            Norvo is a design and growth partner for small businesses and organizations.
+            Web, advertising, brand, and the strategy to connect them — built by people who
+            care how your business does, not just how it looks.
           </p>
         </motion.div>
 
@@ -465,6 +643,31 @@ export default function ServicesPageContent() {
           className="pointer-events-none absolute inset-0 -z-10"
           style={{ background: "radial-gradient(ellipse at 60% 60%, rgba(109,93,251,0.06) 0%, transparent 60%)" }}
         />
+      </div>
+
+      {/* Positioning — the reframe */}
+      <div className="border-t px-6 py-20 md:px-16 md:py-28" style={{ borderColor: "rgba(244,245,247,0.06)" }}>
+        <div className="mx-auto max-w-3xl">
+          <p className="mb-4 text-[10px] uppercase tracking-[0.4em]" style={{ color: "var(--norvo-violet)" }}>
+            How we help
+          </p>
+          <h2 className="mb-8 text-3xl font-light leading-snug tracking-tight text-[var(--archive-white)] md:text-4xl">
+            A partner for the whole business — not just the website.
+          </h2>
+          <div className="space-y-5 text-base leading-relaxed text-[var(--archive-white)]/60 md:text-lg">
+            <p>
+              Norvo started in web design, and it&apos;s still where we&apos;re happiest. But a
+              great website is one piece of a bigger picture. So we grew with our clients:
+              the ads that bring people in, the brand that ties it all together, and the
+              thinking behind the offer itself.
+            </p>
+            <p>
+              You get one small team that learns your business and stays with it. One point
+              of contact. Real opinions when you ask for them. And work that&apos;s made for
+              you, from the first idea to the thing that ships.
+            </p>
+          </div>
+        </div>
       </div>
 
       {/* Impact stats */}
@@ -476,11 +679,40 @@ export default function ServicesPageContent() {
         </div>
       </div>
 
-      {/* Capability modules */}
+      {/* Service pillars */}
       <div id="services">
         {MODULES.map((mod, i) => (
           <CapabilityModule key={mod.number} index={i} {...mod} />
         ))}
+      </div>
+
+      {/* Trust — why work with Norvo */}
+      <div className="border-b px-6 py-20 md:px-16 md:py-28" style={{ borderColor: "rgba(244,245,247,0.06)" }}>
+        <div className="mx-auto max-w-7xl">
+          <p className="mb-4 text-[10px] uppercase tracking-[0.4em]" style={{ color: "var(--norvo-violet)" }}>
+            Why Norvo
+          </p>
+          <h2 className="mb-12 max-w-2xl text-3xl font-light leading-snug tracking-tight text-[var(--archive-white)] md:text-4xl">
+            Boutique means you&apos;re never just a ticket in a queue.
+          </h2>
+          <div className="grid gap-x-12 gap-y-10 sm:grid-cols-2">
+            {TRUST.map((point, i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.6, delay: i * 0.08 }}
+              >
+                <div className="mb-3 flex items-center gap-3">
+                  <span className="h-1 w-6 rounded-full" style={{ background: "var(--norvo-gradient)" }} />
+                  <h3 className="text-lg font-light text-[var(--archive-white)]">{point.title}</h3>
+                </div>
+                <p className="max-w-md text-sm leading-relaxed text-[var(--archive-white)]/55">{point.body}</p>
+              </motion.div>
+            ))}
+          </div>
+        </div>
       </div>
 
       {/* Bottom CTA */}
@@ -493,12 +725,12 @@ export default function ServicesPageContent() {
             viewport={{ once: true }}
           >
             <p className="mb-3 text-[10px] tracking-[0.4em] text-[var(--archive-white)]/30 uppercase">
-              Ready to begin?
+              Ready when you are
             </p>
             <h2 className="mb-8 text-4xl font-light leading-tight text-[var(--archive-white)] md:text-5xl">
               Let&apos;s build something
               <br />
-              <span className="text-gradient">the web hasn&apos;t seen.</span>
+              <span className="text-gradient">worth returning to.</span>
             </h2>
             <Link
               href="/start"

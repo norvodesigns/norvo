@@ -2,7 +2,8 @@ import ServicesPageContent from "@/components/ServicesPageContent";
 
 export const metadata = {
   title: "Our Services — Norvo",
-  description: "Premium web design and development services for small businesses and organizations.",
+  description:
+    "A design and growth partner for small businesses: web design & development, advertising, graphic design & brand, and business & product consulting.",
 };
 
 export default function ServicesPage() {
