@@ -27,8 +27,11 @@ export default function Footer() {
             <div className="text-[var(--archive-white)]">
               <Logo className="text-[2rem]" />
             </div>
-            <p className="mt-4 max-w-[220px] text-sm leading-relaxed text-[var(--archive-white)]/30">
-              We design the future of the web.
+            <p className="mt-4 max-w-[240px] text-sm leading-relaxed text-[var(--archive-white)]/30">
+              We design the future.
+            </p>
+            <p className="mt-2 max-w-[240px] text-xs leading-relaxed text-[var(--archive-white)]/20">
+              Web, brand, advertising, and the strategy to connect them.
             </p>
           </div>
 

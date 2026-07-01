@@ -224,7 +224,7 @@ function WebsiteRedesignVisual() {
   );
 }
 
-// ── Mobile: a real client site auto-scrolling inside a phone ──────────────────
+// ── Mobile: a demo site (Harborview Estates) auto-scrolling inside a phone ────
 
 function MobileExperienceVisual() {
   const iframeRef = useRef<HTMLIFrameElement>(null);
@@ -306,19 +306,16 @@ function MobileExperienceVisual() {
     >
       {/* Phone frame */}
       <div className="relative w-56 rounded-[2.8rem] border-[10px] border-gray-900 bg-gray-900 shadow-2xl ring-1 ring-white/10">
-        {/* Notch */}
-        <div className="absolute left-1/2 top-0 z-20 h-5 w-28 -translate-x-1/2 rounded-b-2xl bg-gray-900" />
-
         {/* Screen */}
         <div className="relative overflow-hidden rounded-[2rem] bg-white" style={{ aspectRatio: "9/19.5" }}>
-          {/* Bar covering the notch area — matches the site's navbar colour so the corners read cleanly */}
+          {/* Bar covering the notch area — matches the site's navbar color so the corners read cleanly */}
           <div className="absolute left-0 right-0 top-0 z-10" style={{ height: NOTCH_H, background: "#f5f3ef" }} />
 
-          {/* Live client site, scaled to fit the phone screen and auto-scrolling */}
+          {/* Demo site, scaled to fit the phone screen and auto-scrolling */}
           <iframe
             ref={iframeRef}
             src="/norvo-example-site.html"
-            title="Norvo — a live client site on mobile"
+            title="Norvo — a demo site on mobile"
             onLoad={injectStyles}
             style={{
               position: "absolute",
@@ -335,13 +332,6 @@ function MobileExperienceVisual() {
 
           {/* Interaction blocker — keeps touch/scroll out of the iframe */}
           <div className="absolute inset-0 z-20" style={{ touchAction: "none" }} />
-
-          {/* Decorative hamburger */}
-          <div className="absolute right-3 top-6 z-30 flex flex-col gap-[4px]">
-            <div className="h-[2px] w-4 rounded-full bg-gray-800" />
-            <div className="h-[2px] w-4 rounded-full bg-gray-800" />
-            <div className="h-[2px] w-3 rounded-full bg-gray-800" />
-          </div>
         </div>
 
         {/* Home bar */}
@@ -351,7 +341,7 @@ function MobileExperienceVisual() {
       </div>
 
       <p className="text-center text-xs font-light tracking-widest text-[var(--archive-white)]/40 uppercase">
-        A live client site — Harborview Estates
+        A demo we built — Harborview Estates
       </p>
     </motion.div>
   );
@@ -367,7 +357,7 @@ function BrandDesignVisual() {
     >
       <div className="mb-4 text-xs tracking-widest text-[var(--archive-white)]/30 uppercase">Brand system</div>
 
-      {/* Colour swatches */}
+      {/* Color swatches */}
       <div className="mb-4 flex gap-3">
         {["#14161A", "#6D5DFB", "#D8B46A", "#F4F5F7"].map((c, i) => (
           <motion.div
@@ -426,7 +416,15 @@ function AdvertisingVisual() {
   ];
   return (
     <div className="relative w-full max-w-md">
-      <div className="mb-3 text-xs tracking-widest text-[var(--archive-white)]/30 uppercase">Campaign · last 30 days</div>
+      <div className="mb-3 flex items-center justify-between">
+        <span className="text-xs tracking-widest text-[var(--archive-white)]/30 uppercase">Campaign snapshot</span>
+        <span
+          className="rounded-full px-2 py-0.5 text-[9px] uppercase tracking-widest text-[var(--archive-white)]/40"
+          style={{ border: "1px solid rgba(244,245,247,0.12)" }}
+        >
+          Illustrative
+        </span>
+      </div>
       {metrics.map((metric, i) => (
         <motion.div
           key={i}
@@ -522,7 +520,7 @@ const MODULES = [
       "Your website is where most people meet your business for the first time. We design and build it from scratch, around you and the people you want to reach — never a template with your logo dropped in. The goal is simple: earn trust in the first second, and turn a visitor into an inquiry. Drag the slider to see a real redesign, before and after.",
     capabilities: [
       "Custom-designed and built, not templated",
-      "Fast, modern, and yours alone",
+      "Fast, and yours alone",
       "Turns first impressions into inquiries",
       "Real client work — see it right here",
     ],
@@ -533,12 +531,12 @@ const MODULES = [
     title: "Premium on every screen",
     tagline: "Because most of your visitors are holding a phone.",
     description:
-      "Too many sites treat mobile as an afterthought — a desktop layout squeezed until it fits. We start on the phone and build up from there, so every tap and every scroll feels considered. The phone beside this is a real client site, running live and scrolling on its own.",
+      "Too many sites treat mobile as an afterthought — a desktop layout squeezed until it fits. We start on the phone and build up from there, so every tap and every scroll feels considered. The phone beside this is a demo we built to show the idea — scrolling on its own.",
     capabilities: [
       "Designed mobile-first, not shrunk down",
       "Smooth on any connection",
       "Built for thumbs, not just clicks",
-      "A live client site, scrolling right here",
+      "A working demo, scrolling right here",
     ],
     visual: <MobileExperienceVisual />,
   },
@@ -561,7 +559,7 @@ const MODULES = [
     title: "One brand, one voice, everywhere",
     tagline: "A logo is the start, not the finish.",
     description:
-      "Your business should look like itself wherever it shows up — the website, an ad, a business card, the sign on the door. We build the whole visual identity: the colours, the type, the way it all feels. So everything holds together, and everything feels like you.",
+      "Your business should look like itself wherever it shows up — the website, an ad, a business card, the sign on the door. We build the whole visual identity: the colors, the type, the way it all feels. So everything holds together, and everything feels like you.",
     capabilities: [
       "Logos and full identity systems",
       "Consistent across every touchpoint",
@@ -575,7 +573,7 @@ const MODULES = [
     title: "A partner to think it through with",
     tagline: "Sometimes the hard part isn't the design.",
     description:
-      "It's deciding what to offer, who it's for, and how to charge for it. We've helped owners shape products, sharpen an offer, and plan the next move — not from a textbook, but from having built the real thing many times over. Consider us a sounding board that also knows how to make it.",
+      "It's deciding what to offer, who it's for, and how to charge for it. We've helped owners shape products, sharpen an offer, and plan the next move — not from a textbook, but from having built the real thing ourselves. Consider us a sounding board that also knows how to make it.",
     capabilities: [
       "Straight, useful advice when you ask for it",
       "Shaping your offer and your pricing",
@@ -607,8 +605,8 @@ const TRUST = [
     body: "A beautiful site that brings you no work is a failure. We measure success the way you do — in inquiries, customers, and growth.",
   },
   {
-    title: "Real work you can see running",
-    body: "Drag the sliders. Watch the phone. These are real clients, live. Then let's talk about yours.",
+    title: "Work you can see for yourself",
+    body: "Drag the sliders — a real client redesign. Watch the phone — a demo we built to show what's possible. Then let's talk about yours.",
   },
 ];
 

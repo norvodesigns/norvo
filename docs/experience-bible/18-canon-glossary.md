@@ -3,6 +3,8 @@
 
 > The single source of truth for every name, term, and rule. If a name appears anywhere in the bible, it is defined here. If two files disagree on a name, this file wins. Read File 00 and File 01 first; consult this file whenever you write or name anything.
 
+> **Positioning update (2026-07-01).** Norvo is a **design + growth partner**, not only a web-design studio. The Services page presents five pillars — **Web design & development · Mobile experience · Advertising & marketing · Graphic design & brand · Business & product consulting** (these supersede the older six web-only module names). The master brand line is **"We design the future."** (unqualified); "…of the web" is a homepage-specific expression of it, not the company-level scope. Still canonical and immutable: the four impact stats (**50ms · 75% · 88% · 2×**), the four color names, **"WE DESIGN THE FUTURE."**, **"Let's build something worth returning to."**, and **norvodesigns@gmail.com**. Note: the Services page's **Harborview Estates** mobile demo is a demo Norvo built, *not* a client — never describe it as a live/real client site.
+
 ---
 
 ## 18.1 — The Naming Canon (Proper Nouns — Fixed)
