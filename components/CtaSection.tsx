@@ -10,7 +10,6 @@ import {
 } from "motion/react";
 import Button from "./Button";
 import { useDeviceTilt } from "./DeviceTilt";
-import TiltHint from "./TiltHint";
 
 const ease = [0.22, 1, 0.36, 1] as const;
 // Slightly under-damped so that on mouse-leave (raw → 0) everything eases home
@@ -202,9 +201,6 @@ export default function CtaSection() {
           <Button href="/projects" variant="secondary" size="md" dark>See the work</Button>
         </motion.div>
 
-        <div className="mt-10 flex justify-center" style={{ transform: "translateZ(38px)" }}>
-          <TiltHint dark />
-        </div>
 
         {/* Email — same forward layer as buttons */}
         <motion.p

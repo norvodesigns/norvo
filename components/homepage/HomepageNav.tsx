@@ -188,45 +188,65 @@ export default function HomepageNav({ progress, introComplete }: Props) {
         <div ref={pctRef} className="mt-1 tabular-nums opacity-30">0% — THE ASCENT</div>
       </div>
 
-      {/* Mobile menu overlay — CSS-driven (no WAAPI), always mounted so the close
-          control and links can never stall mid-animation. */}
+      {/* Mobile menu overlay — CSS-driven (no WAAPI, per the WebKit-crash
+          constraint), always mounted so the close control can never stall. Tuned
+          to match the global Nav's mobile menu (components/Nav.tsx): links rise
+          from below with a slight rotate and a spring-like settle, staggered on
+          open and in reverse on close; the overlay fades out after the links. */}
       <div
-        className="fixed inset-0 z-40 flex flex-col items-center justify-center gap-8 bg-[#14161A] px-8 md:hidden"
+        className="fixed inset-0 z-40 flex flex-col items-center justify-center gap-9 bg-[#14161A] px-8 md:hidden"
         style={{
           opacity: open ? 1 : 0,
           visibility: open ? "visible" : "hidden",
           pointerEvents: open ? "auto" : "none",
-          transition: "opacity 0.4s cubic-bezier(0.22,1,0.36,1), visibility 0.4s",
+          transition: open
+            ? "opacity 0.35s cubic-bezier(0.22,1,0.36,1), visibility 0s"
+            : "opacity 0.5s cubic-bezier(0.22,1,0.36,1), visibility 0s 0.5s",
         }}
       >
         {LINKS.map((l, i) => (
-          <Link
+          <div
             key={l.href}
-            href={l.href}
-            onClick={() => setOpen(false)}
-            className="text-[2.2rem] font-light leading-none tracking-tight text-[var(--archive-white)] transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]"
             style={{
-              transitionDelay: open ? `${0.08 + i * 0.06}s` : "0s",
+              transformOrigin: "0% 100%",
               opacity: open ? 1 : 0,
-              transform: open ? "translateY(0)" : "translateY(20px)",
+              transform: open ? "translateY(0) rotate(0deg)" : "translateY(46px) rotate(-8deg)",
+              transition: open
+                ? `transform 0.6s cubic-bezier(0.34,1.45,0.5,1) ${(0.1 + i * 0.08).toFixed(3)}s, opacity 0.42s ease-out ${(0.1 + i * 0.08).toFixed(3)}s`
+                : `transform 0.34s cubic-bezier(0.65,0,0.35,1) ${((LINKS.length - i) * 0.05).toFixed(3)}s, opacity 0.34s ease-in ${((LINKS.length - i) * 0.05).toFixed(3)}s`,
             }}
           >
-            {l.label}
-          </Link>
+            <Link
+              href={l.href}
+              onClick={() => setOpen(false)}
+              className="block text-[2.5rem] font-light leading-none tracking-tight text-[var(--archive-white)] transition-opacity duration-300 hover:opacity-50"
+            >
+              {l.label}
+            </Link>
+          </div>
         ))}
         <div
-          className="mt-4 transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]"
+          className="mt-8"
           style={{
-            transitionDelay: open ? `${0.08 + LINKS.length * 0.06}s` : "0s",
+            transformOrigin: "0% 100%",
             opacity: open ? 1 : 0,
-            transform: open ? "translateY(0)" : "translateY(20px)",
+            transform: open ? "translateY(0) rotate(0deg)" : "translateY(46px) rotate(-8deg)",
+            transition: open
+              ? `transform 0.6s cubic-bezier(0.34,1.45,0.5,1) ${(0.1 + LINKS.length * 0.08).toFixed(3)}s, opacity 0.42s ease-out ${(0.1 + LINKS.length * 0.08).toFixed(3)}s`
+              : "transform 0.34s cubic-bezier(0.65,0,0.35,1) 0s, opacity 0.34s ease-in 0s",
           }}
         >
           <Button href="/start" variant="primary" withArrow onClick={() => setOpen(false)}>
             Start a project
           </Button>
         </div>
-        <div className="absolute inset-x-0 bottom-10 flex flex-col items-center gap-2 text-[0.7rem] uppercase tracking-[0.25em] text-[var(--archive-white)]/30">
+        <div
+          className="absolute inset-x-0 bottom-10 flex flex-col items-center gap-2 text-[0.7rem] uppercase tracking-[0.25em] text-[var(--archive-white)]/30"
+          style={{
+            opacity: open ? 1 : 0,
+            transition: open ? "opacity 0.5s ease 0.3s" : "opacity 0.3s ease",
+          }}
+        >
           <a href="mailto:norvodesigns@gmail.com" className="hover:text-[var(--archive-white)]">
             norvodesigns@gmail.com
           </a>

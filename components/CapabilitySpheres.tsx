@@ -7,7 +7,6 @@ import { BlendFunction } from "postprocessing";
 import { motion, AnimatePresence, useInView } from "motion/react";
 import * as THREE from "three";
 import { useDeviceTilt } from "./DeviceTilt";
-import TiltHint from "./TiltHint";
 
 type LookRef = React.MutableRefObject<{ x: number; y: number }>;
 
@@ -1192,11 +1191,6 @@ export default function CapabilitySpheres(){
             )}
           </div>
 
-          {/* tilt nudge — only on mobile once the gyro has been enabled */}
-          <div className="pointer-events-none absolute left-0 right-0 flex justify-center"
-               style={{ bottom: isMobile ? "7%" : "11%", zIndex: 6 }}>
-            <TiltHint />
-          </div>
 
         </div>
       </div>
